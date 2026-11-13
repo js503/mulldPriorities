@@ -8,6 +8,14 @@ using Verse;
 
 namespace Mulld.Priorities
 {
+    public sealed class SmokeBootstrap : Mod
+    {
+        public SmokeBootstrap(ModContentPack content) : base(content)
+        {
+            if (GenCommandLine.CommandLineArgPassed("mulldloadtest"))
+                LongEventHandler.ExecuteWhenFinished(() => GameDataSaveLoader.LoadGame("mulld-compat-copy"));
+        }
+    }
     // Compiled only with tools/Build.ps1 -WithSmokeTests. Runs only in a new,
     // isolated -quicktest profile explicitly launched with -mulldsmoketest.
     public static class SmokeHarness
@@ -15,6 +23,7 @@ namespace Mulld.Priorities
         private static int phase, frames, checks;
         private static Map oldMap;
         private static string pawnId, workName;
+        private static bool? originalOtherTimer;
         private static string Results => Path.Combine(GenFilePaths.SaveDataFolderPath, "smoke-results.txt");
         private static void Check(bool value, string description)
         {
@@ -31,8 +40,40 @@ namespace Mulld.Priorities
                     if (state.Workers.Count < 1 || Find.TickManager == null) return;
                     phase = 1; oldMap = state.map;
                     File.WriteAllText(Results, "mulld Priorities in-game smoke test" + Environment.NewLine);
+                    File.WriteAllText(Path.Combine(GenFilePaths.SaveDataFolderPath, "loaded-mods.txt"), string.Join(Environment.NewLine, LoadedModManager.RunningMods.Select(m => m.PackageId + " | " + m.Name)));
                     Check(!state.Daily && state.Boosts.Count == 0, "Automation starts disabled");
                     var snapshot = state.Snapshot(true);
+                    var otherComponent = state.map.components.FirstOrDefault(c => c.GetType().FullName == "AutoPriorities.Core.MapSpecificData");
+                    var otherTimer = otherComponent?.GetType().GetProperty("RunOnTimer");
+                    originalOtherTimer = otherTimer == null ? null : (bool?)otherTimer.GetValue(otherComponent);
+                    File.WriteAllText(Path.Combine(GenFilePaths.SaveDataFolderPath, "compat-details.txt"), "Original AutoPriorities timer: " + originalOtherTimer + Environment.NewLine + "Visible work types: " + string.Join(", ", WorkAccess.Works().Select(w => w.defName)) + Environment.NewLine + "Workers: " + state.Workers.Count + Environment.NewLine);
+                    var storage = state.map.listerThings.AllThings.Where(t => t.GetType().Namespace == "AdaptiveStorage").ToList();
+                    File.AppendAllText(Path.Combine(GenFilePaths.SaveDataFolderPath, "compat-details.txt"), "AdaptiveStorage buildings: " + storage.Count + Environment.NewLine);
+                    if (storage.Count > 0) File.WriteAllText(Path.Combine(GenFilePaths.SaveDataFolderPath, "storage-members.txt"), string.Join(Environment.NewLine, storage[0].GetType().GetMembers(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance).Select(m => m.ToString())));
+                    foreach (var building in storage)
+                    {
+                        var contents = building.GetType().GetProperty("StoredThings")?.GetValue(building) as System.Collections.IEnumerable;
+                        if (contents == null) continue;
+                        var storedFood = contents.Cast<Thing>().Where(t => t.def.ingestible != null && FoodUtility.IsHumanFood(t.def)).ToList();
+                        File.AppendAllText(Path.Combine(GenFilePaths.SaveDataFolderPath, "compat-details.txt"), building.def.defName + " food stacks: " + storedFood.Count + "; unspawned: " + storedFood.Count(t => !t.Spawned) + Environment.NewLine);
+                        Check(storedFood.All(t => state.map.listerThings.AllThings.Contains(t)), "Adaptive Storage food remains visible to the indicator scan");
+                    }
+                    var fridgeDef = DefDatabase<ThingDef>.GetNamedSilentFail("sbz_Fridge");
+                    if (fridgeDef != null)
+                    {
+                        var fridgeCell = state.map.AllCells.First(c => GenAdj.OccupiedRect(c, Rot4.North, fridgeDef.size).Cells.All(cell => cell.InBounds(state.map) && cell.Standable(state.map) && !cell.Fogged(state.map) && cell.GetEdifice(state.map) == null));
+                        var fridge = (Building_Storage)GenSpawn.Spawn(ThingMaker.MakeThing(fridgeDef, fridgeDef.MadeFromStuff ? ThingDefOf.Steel : null), fridgeCell, state.map);
+                        fridge.SetFaction(Faction.OfPlayer);
+                        fridge.GetStoreSettings().filter.SetAllow(ThingDefOf.MealSimple, true);
+                        var foodBefore = state.Snapshot(true).FoodDays;
+                        var fridgeMeal = ThingMaker.MakeThing(ThingDefOf.MealSimple); fridgeMeal.stackCount = 3;
+                        GenSpawn.Spawn(fridgeMeal, fridge.GetSlotGroup().CellsList.First(), state.map);
+                        var contents = fridge.GetType().GetProperty("StoredThings")?.GetValue(fridge) as System.Collections.IEnumerable;
+                        Check(contents != null && contents.Cast<Thing>().Contains(fridgeMeal), "Test meals registered inside sbz Adaptive Storage fridge");
+                        float dailyFood = state.map.mapPawns.FreeColonistsSpawned.Where(p => p.needs?.food != null).Sum(p => p.needs.food.FoodFallPerTickAssumingCategory(HungerCategory.Fed, true) * 60000f);
+                        float measuredNutrition = (state.Snapshot(true).FoodDays - foodBefore) * dailyFood;
+                        Check(Math.Abs(measuredNutrition - fridgeMeal.def.ingestible.CachedNutrition * fridgeMeal.stackCount) < .02f, "Fridge meals counted exactly once in food runway");
+                    }
                     Check(snapshot.Needs.Count == 6, "All six live colony indicators computed");
                     Check(snapshot.FoodDays >= 0 && snapshot.ReadyCrops >= 0, "Indicator values nonnegative");
                     var pawn = state.Workers.First();
@@ -134,11 +175,28 @@ namespace Mulld.Priorities
                     Check(state.Workers.Count < 2 || !state.Managed(state.Workers[1]), "Exclusion survives save and reload");
                     Check(state.Boosts.Count == 1 && state.Undo.Count == 1, "Boost and undo history survive reload");
                     Check(state.Snapshot(true).Needs.Count == 6, "Indicators compute after reload");
+                    state.Boosts.Clear(); // Expiry has its own checks; isolate the daily-manager conflict test.
+                    state.SetLock(pawn, work, false); // Persistence is checked above; exercise an editable worker even in a solo colony.
                     int tick = Find.TickManager.TicksGame;
+                    var otherComponent = state.map.components.FirstOrDefault(c => c.GetType().FullName == "AutoPriorities.Core.MapSpecificData");
+                    var otherTimer = otherComponent?.GetType().GetProperty("RunOnTimer");
+                    if (otherTimer != null)
+                    {
+                        otherTimer.SetValue(otherComponent, true);
+                        var priorities = state.Workers.Where(p => WorkAccess.Capable(p, work)).ToDictionary(p => p.ThingID, p => p.workSettings.GetPriority(work));
+                        int scheduled = state.NextDailyTick;
+                        state.ProcessAutomation(tick + 70000);
+                        Check(Compatibility.AutomaticManager(state.map) != null && state.NextDailyTick == scheduled, "AutoPriorities timer pauses mulld daily rules");
+                        Check(state.Workers.Where(p => WorkAccess.Capable(p, work)).All(p => p.workSettings.GetPriority(work) == priorities[p.ThingID]), "Manager-overlap guard preserves every work assignment");
+                        Check((bool)otherTimer.GetValue(otherComponent), "Overlap guard does not disable the other mod's timer");
+                        otherTimer.SetValue(otherComponent, false);
+                    }
                     state.ProcessAutomation(tick + 70000);
                     Check(state.NextDailyTick == tick + 130000, "Daily reassignment advances next-run timer");
-                    Check(state.Workers.Where(p => state.Managed(p) && WorkAccess.Capable(p, work) && !state.IsLocked(p, work) && WorkAccess.Available(p)).All(p => p.workSettings.GetPriority(work) == 3), "Daily staffing rules apply to eligible real pawns");
+                    var dailyWorkers = state.Workers.Where(p => state.Managed(p) && WorkAccess.Capable(p, work) && !state.IsLocked(p, work) && WorkAccess.Available(p)).ToList();
+                    Check(dailyWorkers.Count > 0 && dailyWorkers.All(p => p.workSettings.GetPriority(work) == 3), "Daily staffing rules apply to eligible real pawns");
                     state.Daily = false;
+                    if (otherTimer != null && originalOtherTimer.HasValue) otherTimer.SetValue(otherComponent, originalOtherTimer.Value);
                     Find.MainTabsRoot.SetCurrentTab(DefDatabase<MainButtonDef>.GetNamed("MulldPriorities"));
                     Find.TickManager.Pause();
                     frames = 0;

@@ -10,6 +10,6 @@ Target installation: RimWorld **1.7.5005 rev1082**, Waylith, Windows.
 - Rebuilt the release twice and verified identical SHA-256 hashes.
 - Parsed the metadata and main-button XML.
 
-The isolated quicktest profile used Core, the five installed official expansions and mulld Priorities. Normal save files and the normal active-mod configuration were not used. Full mod-list compatibility, multiplayer and extended priority ranges remain unvalidated.
+The initial isolated quicktest profile used Core, the five installed official expansions and mulld Priorities. Normal save files and the normal active-mod configuration were not used. Subsequent validation with the current 96-entry mod list and a copied colony is documented in `Compatibility.md`. Multiplayer and extended priority ranges remain unvalidated.
 
 Reproduce with `tools/Test.ps1` and the explicit smoke-test workflow in the repository README. The complete in-game result list is in `Tests/in-game-results.txt`.

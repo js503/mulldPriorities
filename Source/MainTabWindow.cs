@@ -38,7 +38,8 @@ namespace Mulld.Priorities
                 Text.Font = GameFont.Medium;
                 Label(new Rect(0, 0, rect.width - 210, 34), "mulld Priorities");
                 Text.Font = GameFont.Small;
-                Label(new Rect(0, 35, rect.width - 210, 26), State.Workers.Count + " workers · " + (State.Daily ? "Daily rule assignment" : "Manual approval") + " · " + boundMap.Parent.LabelCap);
+                string otherManager = Compatibility.AutomaticManager(boundMap);
+                Label(new Rect(0, 35, rect.width - 210, 26), State.Workers.Count + " workers · " + (otherManager != null ? otherManager + " timer active; mulld daily rules paused" : State.Daily ? "Daily rule assignment" : "Manual approval") + " · " + boundMap.Parent.LabelCap);
                 if (Widgets.ButtonText(new Rect(rect.width - 195, 4, 95, 30), "Refresh")) { State.Snapshot(true); status = "Colony indicators refreshed; drafts preserved."; }
                 if (Widgets.ButtonText(new Rect(rect.width - 94, 4, 94, 30), "All needs")) NeedMenu();
                 DrawNeeds(new Rect(0, 70, rect.width, 174));
@@ -229,7 +230,8 @@ namespace Mulld.Priorities
                 list.CheckboxLabeled("Reassign enabled staffing rules once per in-game day", ref daily, "This applies saved rules without a preview. It never automatically accepts colony-need recommendations.");
                 if (daily != State.Daily)
                 {
-                    if (daily && !Current.Game.playSettings.useWorkPriorities) status = "Apply a reviewed assignment with numbered priorities enabled before switching on daily automation.";
+                    if (daily && Compatibility.AutomaticManager(boundMap) != null) status = "Disable the AutoPriorities timer for this map before enabling mulld daily rules. Manual review/apply remains available.";
+                    else if (daily && !Current.Game.playSettings.useWorkPriorities) status = "Apply a reviewed assignment with numbered priorities enabled before switching on daily automation.";
                     else { State.Daily = daily; State.NextDailyTick = Find.TickManager.TicksGame + 60000; }
                 }
                 list.Label("Food reserve target: " + State.FoodTarget.ToString("0.0") + " days");
@@ -244,6 +246,7 @@ namespace Mulld.Priorities
                 list.Label("Temporary boosts restore the previous assignment when the need resolves or the timer expires. Changed, locked and excluded assignments are preserved. Colonists off this map are checked when they return.");
                 list.Gap(12);
                 list.Label("Numbered priorities supported: Off and 1-4. Expanded-priority mods and multiplayer have not been validated. Avoid enabling two automatic work managers on the same colonists.");
+                if (Compatibility.AutomaticManager(boundMap) != null) list.Label("AutoPriorities is running timed assignments on this map. mulld daily rules are paused until its timer is turned off; your other mod's settings are not changed.");
                 list.End();
             }
             finally { Widgets.EndScrollView(); }

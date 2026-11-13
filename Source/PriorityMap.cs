@@ -168,7 +168,7 @@ namespace Mulld.Priorities
                         b.Pawn.workSettings.SetPriority(b.Work, b.Before);
                     Boosts.Remove(b);
                 }
-                if (Daily && tick >= NextDailyTick)
+                if (Daily && tick >= NextDailyTick && Compatibility.AutomaticManager(map) == null)
                 {
                     NextDailyTick = tick + 60000;
                     if (Current.Game.playSettings.useWorkPriorities)

@@ -34,6 +34,8 @@ Rules start disabled. **Colony preset → Balanced colony** configures rules wit
 
 Daily automation applies enabled staffing rules every 60,000 game ticks. It does **not** automatically accept need recommendations. It respects exclusions, locks, active boosts, incapabilities, age restrictions and main-job limits. Standing, undrafted colonists outside mental states are considered available; sleeping colonists can still be selected. Temporarily unavailable workers retain their existing assignments.
 
+When AutoPriorities is installed, mulld reads its per-map **Run on timer** setting. If that timer is active, mulld pauses daily rule assignment and shows the conflict in its interface. Manual review/apply stays available. Turn off AutoPriorities' timer on that map to use mulld daily rules. mulld never changes AutoPriorities' settings for you, and pauses conservatively if its timer state cannot be read.
+
 Firefighting, patient and bed rest work are exempt from the main-job cap. An underfilled rule is possible when too few eligible workers remain after protections and caps.
 
 ### Temporary boosts
@@ -92,12 +94,14 @@ The smoke test launches a new `-quicktest` colony using the isolated `artifacts/
 
 After testing, rebuild **without** `-WithSmokeTests` and reinstall for normal use. The release DLL excludes the harness.
 
+To test your active mod configuration in isolation, use `tools/Smoke-Test.ps1 -CurrentModList -ProfileName compat-check`. Add `-SavePath "C:\Path\To\Colony.rws"` to test a copy of an existing colony instead of a fresh quicktest. The tool copies configuration files and the selected save into the test profile; it does not edit the originals. See `Tests/Compatibility.md` for the tested configuration and outcomes.
+
 ## Compatibility and current scope
 
 - Target: RimWorld **1.7.5005**, with baseline priority values Off/1/2/3/4.
 - Independent implementation; no AutoPriorities code or assets copied.
 - Current-map free colonists are managed. Slaves/prisoners may count as patients but are not automatically assigned work.
-- Other work managers can change the same assignments. Conflict checks protect review and undo; avoid enabling competing daily managers for the same colonists.
+- Other work managers can change the same assignments. Conflict checks protect review and undo; the AutoPriorities timer has an explicit daily-management guard.
 - Expanded-priority mods, multiplayer, special race work systems and every modded food category have not been validated.
 - Interface text is English; a complete translation pack and Steam publishing are not included.
 
