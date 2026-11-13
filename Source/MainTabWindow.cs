@@ -226,7 +226,8 @@ namespace Mulld.Priorities
                 }
                 list.CheckboxLabeled("Use balanced primary / backup / fallback policy",ref State.BalancedPolicy);
                 list.Label("Main-role budget: "+State.MaxMainJobs+" per pawn (essential overflow stays enabled at priority 3)");
-                State.MaxMainJobs=(int)Math.Round(list.Slider(State.MaxMainJobs,1,10));
+                int mainJobs=(int)Math.Round(list.Slider(State.MaxMainJobs,1,10));
+                if(mainJobs!=State.MaxMainJobs){State.MaxMainJobs=mainJobs;State.Invalidate();}
                 list.Label("Food reserve target: "+State.FoodTarget.ToString("0.0")+" days");
                 float target=(float)Math.Round(list.Slider(State.FoodTarget,.5f,10f)*2)/2;
                 if(Math.Abs(target-State.FoodTarget)>.01){State.FoodTarget=target;State.Invalidate();}

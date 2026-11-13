@@ -97,6 +97,10 @@ namespace Mulld.Priorities
                     state.Excluded.Add(pawnId);
                     Check(state.Validate(new[] { edit }) != null, "Excluded colonist rejected");
                     state.Excluded.Clear();
+                    pawn.drafter.Drafted = true;
+                    Check(state.Validate(new[] { edit }) != null, "Draft rejected when pawn becomes drafted after preview");
+                    pawn.drafter.Drafted = false;
+                    Check(state.Validate(new Assignment[] { null }) != null, "Null draft entry rejected safely");
                     var bad = edit.Copy(); bad.Before = before == 0 ? 1 : 0;
                     Check(state.Validate(new[] { bad }) != null, "Stale draft rejected");
                     bad = edit.Copy(); bad.After = 5;
@@ -119,6 +123,9 @@ namespace Mulld.Priorities
                     state.Excluded.Add(pawnId);
                     Check(state.Plan().All(c => c.Pawn != pawn), "Rule planner preserves real exclusion");
                     state.Excluded.Clear();
+                    AuditAllWorkTypes(state);
+                    AuditNumberedConsent(state);
+                    AuditUtilityBudget(state);
                     int now = Find.TickManager.TicksGame;
                     boost.ExpiresAt = now + 1;
                     Check(state.Apply(new List<Assignment> { boost }, false) == null, "Boost applies before lock-expiry test");
@@ -144,6 +151,7 @@ namespace Mulld.Priorities
                     Check(Presets.Export(state).StartsWith("Exported"), "Rules export");
                     state.Rules.Clear();
                     Check(Presets.Import(state).StartsWith("Imported") && state.Rule(work).Enabled, "Rules import");
+                    AuditPresetValidation(state);
                     var meal = ThingMaker.MakeThing(ThingDefOf.MealSimple); meal.stackCount = 6;
                     GenSpawn.Spawn(meal, pawn.Position, state.map);
                     float originalDays = snapshot.FoodDays;
@@ -214,6 +222,11 @@ namespace Mulld.Priorities
                     var dailyWorkers = state.Workers.Where(p => state.Managed(p) && WorkAccess.Capable(p, work) && !state.IsLocked(p, work) && WorkAccess.Available(p)).ToList();
                     Check(dailyWorkers.Count > 0 && dailyWorkers.All(p => p.workSettings.GetPriority(work) == 3), "Daily staffing rules apply to eligible real pawns");
                     state.Daily = false;
+                    var cachedNeeds=state.Snapshot(true);
+                    state.Daily=true;state.NextDailyTick=tick+60000;
+                    state.ProcessAutomation(tick+2500);
+                    Check(ReferenceEquals(cachedNeeds,state.Snapshot()),"Waiting daily automation does not rescan or invalidate colony needs");
+                    state.Daily=false;
                     if (otherTimer != null && originalOtherTimer.HasValue) otherTimer.SetValue(otherComponent, originalOtherTimer.Value);
                     Check(DefDatabase<MainButtonDef>.GetNamed("Work").TabWindow is MainTabWindow_Priorities, "mulld is attached to the vanilla Work tab");
                     Check(DefDatabase<MainButtonDef>.GetNamedSilentFail("MulldPriorities") == null, "Standalone mulld tab removed");
@@ -231,7 +244,9 @@ namespace Mulld.Priorities
                     if (frames == 75) ScreenCapture.CaptureScreenshot(Path.Combine(GenFilePaths.SaveDataFolderPath, "mulld-editor.png"));
                     if (frames == 90) window.SmokeView("Colonists");
                     if (frames == 120) ScreenCapture.CaptureScreenshot(Path.Combine(GenFilePaths.SaveDataFolderPath, "mulld-colonists.png"));
-                    if (frames == 135) window.SmokeView("Settings");
+                    if (frames == 130) window.SmokeView("Rules");
+                    if (frames == 140) ScreenCapture.CaptureScreenshot(Path.Combine(GenFilePaths.SaveDataFolderPath, "mulld-rules.png"));
+                    if (frames == 145) window.SmokeView("Settings");
                     if (frames == 165) ScreenCapture.CaptureScreenshot(Path.Combine(GenFilePaths.SaveDataFolderPath, "mulld-settings.png"));
                     if (frames == 180)
                     {
@@ -260,7 +275,7 @@ namespace Mulld.Priorities
                     {
                         var errors = Log.Messages.Where(m => m.type == LogMessageType.Error).ToList();
                         File.WriteAllText(Path.Combine(GenFilePaths.SaveDataFolderPath, "game-messages.txt"), string.Join(Environment.NewLine, Log.Messages.Select(m => m.type + ": " + m.text + Environment.NewLine + m.StackTrace)));
-                        Check(errors.Count == 0, "No game errors during load, reload and five interface views");
+                        Check(errors.Count == 0, "No game errors during load, reload and all integrated interface views");
                         File.AppendAllText(Results, "COMPLETE " + checks + " in-game checks passed." + Environment.NewLine);
                         phase = 99; Application.Quit();
                     }
@@ -274,6 +289,105 @@ namespace Mulld.Priorities
             File.AppendAllText(Results, "FAIL " + e + Environment.NewLine);
             Log.Error("[mulld Priorities smoke] " + e);
             Application.Quit(1);
+        }
+        private static void AuditAllWorkTypes(PriorityMap state)
+        {
+            Find.TickManager.Pause();
+            var savedRules=state.Rules;bool savedPolicy=state.BalancedPolicy;
+            var originals=state.Workers.SelectMany(p=>WorkAccess.Works().Where(w=>WorkAccess.Capable(p,w)).Select(w=>new Assignment(p,w,p.workSettings.GetPriority(w),p.workSettings.GetPriority(w),"Audit restoration"))).ToList();
+            try
+            {
+                foreach(var w in WorkAccess.Works())
+                {
+                    var eligible=state.Workers.Where(p=>state.Managed(p)&&WorkAccess.Available(p)&&WorkAccess.Capable(p,w)&&!state.IsLocked(p,w)).ToList();
+                    if(eligible.Count==0){File.AppendAllText(Results,"SKIP No eligible worker for work audit: "+w.defName+Environment.NewLine);continue;}
+                    foreach(bool balanced in new[]{false,true})
+                    {
+                        foreach(var p in eligible)p.workSettings.SetPriority(w,4);
+                        state.BalancedPolicy=balanced;
+                        var rule=new WorkRule{Work=w,Enabled=true,Mode="Everyone",Priority=3,AdultsOnly=false};
+                        state.Rules=new List<WorkRule>{rule};
+                        var plan=state.Plan();string tag=(balanced?"Balanced":"Legacy")+" "+w.defName;
+                        Check(plan.Count==eligible.Count&&plan.All(c=>c.Work==w&&c.After==3),tag+": every eligible worker planned");
+                        Check(state.Apply(plan,false)==null&&eligible.All(p=>p.workSettings.GetPriority(w)==3),tag+": real assignments apply");
+                        state.UndoLast();
+                        Check(eligible.All(p=>p.workSettings.GetPriority(w)==4),tag+": undo restores every assignment");
+                        rule.Mode="Off";
+                        plan=state.Plan();
+                        Check(plan.Count==eligible.Count&&plan.All(c=>c.After==0)&&state.Apply(plan,false)==null&&eligible.All(p=>p.workSettings.GetPriority(w)==0),tag+": Off applies without fallback re-enabling work");
+                        state.UndoLast();
+                    }
+                }
+            }
+            finally
+            {
+                foreach(var original in originals)original.Pawn.workSettings.SetPriority(original.Work,original.Before);
+                state.Rules=savedRules;state.BalancedPolicy=savedPolicy;state.Undo.Clear();state.UndoBoosts.Clear();state.Invalidate();
+            }
+        }
+        private static void AuditPresetValidation(PriorityMap state)
+        {
+            string path=Path.Combine(GenFilePaths.ConfigFolderPath,"mulldPriorities-preset.xml");
+            string original=File.ReadAllText(path);
+            var saved=state.Rules;bool policy=state.BalancedPolicy;
+            try
+            {
+                var xml=System.Xml.Linq.XElement.Parse(original);
+                xml.SetAttributeValue("balanced","invalid");File.WriteAllText(path,xml.ToString());
+                Check(!Presets.Import(state).StartsWith("Imported")&&ReferenceEquals(saved,state.Rules)&&state.BalancedPolicy==policy,"Invalid policy import leaves rules and policy untouched");
+                xml=System.Xml.Linq.XElement.Parse(original);xml.Elements("rule").First().SetAttributeValue("fallback",2);File.WriteAllText(path,xml.ToString());
+                Check(!Presets.Import(state).StartsWith("Imported")&&ReferenceEquals(saved,state.Rules),"Imported primary-priority fallback rejected without replacing rules");
+                xml=System.Xml.Linq.XElement.Parse(original);xml.SetAttributeValue("balanced",true);
+                var first=xml.Elements("rule").First();first.SetAttributeValue("backups",2);first.SetAttributeValue("backupPriority",4);first.SetAttributeValue("fallback",4);first.SetAttributeValue("essential",true);File.WriteAllText(path,xml.ToString());
+                Check(Presets.Import(state).StartsWith("Imported")&&state.BalancedPolicy&&state.Rules[0].Backups==2&&state.Rules[0].BackupPriority==4&&state.Rules[0].FallbackPriority==4&&state.Rules[0].Essential,"Version-2 preset preserves balanced backup and essential settings");
+                xml=System.Xml.Linq.XElement.Parse(original);xml.SetAttributeValue("version",1);xml.Attribute("balanced")?.Remove();
+                foreach(var r in xml.Elements("rule"))foreach(var key in new[]{"backups","backupPriority","fallback","essential"})r.Attribute(key)?.Remove();
+                File.WriteAllText(path,xml.ToString());
+                Check(Presets.Import(state).StartsWith("Imported")&&!state.BalancedPolicy&&state.Rules.All(r=>r.Backups==0&&r.FallbackPriority==0),"Legacy version-1 preset imports with original semantics");
+            }
+            finally{File.WriteAllText(path,original);state.Rules=saved;state.BalancedPolicy=policy;}
+        }
+        private static void AuditNumberedConsent(PriorityMap state)
+        {
+            var pawn=state.Workers.First(p=>state.Managed(p)&&WorkAccess.Available(p));
+            var work=WorkAccess.Works().First(w=>WorkAccess.Capable(pawn,w)&&!state.IsLocked(pawn,w));
+            bool numbered=Current.Game.playSettings.useWorkPriorities;
+            int before=pawn.workSettings.GetPriority(work),after=before==2?3:2;
+            try
+            {
+                Current.Game.playSettings.useWorkPriorities=false;
+                int displayed=pawn.workSettings.GetPriority(work);
+                var changes=new List<Assignment>{new Assignment(pawn,work,displayed,after,"Numbered consent audit")};
+                Check(state.Apply(changes,false)!=null&&!Current.Game.playSettings.useWorkPriorities&&pawn.workSettings.GetPriority(work)==displayed,"Numbered priorities require explicit apply consent");
+                Check(state.Apply(changes,true)==null&&Current.Game.playSettings.useWorkPriorities&&pawn.workSettings.GetPriority(work)==after,"Consented apply enables numbered priorities and applies the draft");
+                state.UndoLast();
+                Check(pawn.workSettings.GetPriority(work)==before,"Consented numbered apply remains undoable");
+                Check(changes[0].Before==displayed,"Applying checkbox-mode draft does not mutate the caller's preview");
+            }
+            finally
+            {
+                pawn.workSettings.SetPriority(work,before);Current.Game.playSettings.useWorkPriorities=numbered;
+                foreach(var m in Find.Maps)foreach(var p in m.mapPawns.AllPawns)p.workSettings?.Notify_UseWorkPrioritiesChanged();
+                state.Undo.Clear();state.UndoBoosts.Clear();state.Invalidate();
+            }
+        }
+        private static void AuditUtilityBudget(PriorityMap state)
+        {
+            var originals=state.Workers.SelectMany(p=>WorkAccess.Works().Where(w=>WorkAccess.Capable(p,w)).Select(w=>new Assignment(p,w,p.workSettings.GetPriority(w),0,"Audit restoration"))).ToList();
+            var rules=state.Rules;bool policy=state.BalancedPolicy;int cap=state.MaxMainJobs;
+            try
+            {
+                foreach(var c in originals)c.Pawn.workSettings.SetPriority(c.Work,WorkAccess.MainWork(c.Work)?4:1);
+                var doctor=DefDatabase<WorkTypeDef>.GetNamed("Doctor");
+                var workers=state.Workers.Where(p=>state.Managed(p)&&WorkAccess.Available(p)&&WorkAccess.Capable(p,doctor)&&!state.IsLocked(p,doctor)).ToList();
+                state.Rules=new List<WorkRule>{new WorkRule{Work=doctor,Enabled=true,Mode="Everyone",Priority=2}};state.MaxMainJobs=1;
+                foreach(bool balanced in new[]{false,true})
+                {
+                    state.BalancedPolicy=balanced;var plan=state.Plan();
+                    Check(workers.Count>0&&workers.All(p=>plan.Any(c=>c.Pawn==p&&c.Work==doctor&&c.After==2)),(balanced?"Balanced":"Legacy")+": utility assignments do not consume specialist budget");
+                }
+            }
+            finally{foreach(var c in originals)c.Pawn.workSettings.SetPriority(c.Work,c.Before);state.Rules=rules;state.BalancedPolicy=policy;state.MaxMainJobs=cap;state.Invalidate();}
         }
     }
 }

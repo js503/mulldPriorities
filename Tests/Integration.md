@@ -13,3 +13,5 @@ Full assertions: integration-results.txt. Loaded configuration: integration-mods
 
 Normal source save and ModsConfig.xml SHA256 hashes matched their pre-test values after validation. Release is rebuilt without diagnostic bootstrap/harness before installation.
 
+
+The subsequent 0.2.1 all-work-type audit and final regression results are recorded in Audit.md.

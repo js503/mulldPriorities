@@ -45,10 +45,13 @@ namespace Mulld.Priorities
             {
                 var xml = XElement.Load(FilePath);
                 if (xml.Name != "mulldPriorities" || (int?)xml.Attribute("version") is not (1 or 2)) return "Unsupported preset format.";
+                bool balanced = false;
+                var policy = xml.Attribute("balanced");
+                if (policy != null && !bool.TryParse(policy.Value, out balanced)) return "Preset contains an invalid balanced policy; nothing imported.";
                 var rules = xml.Elements("rule").Select(e => new WorkRule { Work = DefDatabase<WorkTypeDef>.GetNamedSilentFail((string)e.Attribute("work")), Enabled = (bool)e.Attribute("enabled"), Mode = (string)e.Attribute("mode"), Amount = (int)e.Attribute("amount"), Priority = (int)e.Attribute("priority"), MinSkill = (int)e.Attribute("minSkill"), FavorPassion = (bool)e.Attribute("passion"), AdultsOnly = (bool)e.Attribute("adults"), Backups = (int?)e.Attribute("backups") ?? 0, BackupPriority = (int?)e.Attribute("backupPriority") ?? 3, FallbackPriority = (int?)e.Attribute("fallback") ?? 0, Essential = (bool?)e.Attribute("essential") ?? false }).ToList();
-                if (rules.Any(r => r.Priority < 1 || r.Priority > 4 || r.Amount < 0 || r.MinSkill < 0 || r.MinSkill > 20 || r.Backups < 0 || r.BackupPriority < 3 || r.BackupPriority > 4 || r.FallbackPriority < 0 || r.FallbackPriority > 4 || !new[] { "Count", "Percent", "Everyone", "Off" }.Contains(r.Mode) || r.Mode == "Percent" && r.Amount > 100)) return "Preset contains invalid rule values; nothing imported.";
+                if (rules.Any(r => r.Priority < 1 || r.Priority > 4 || r.Amount < 0 || r.MinSkill < 0 || r.MinSkill > 20 || r.Backups < 0 || r.BackupPriority < 3 || r.BackupPriority > 4 || r.FallbackPriority is not (0 or 3 or 4) || !new[] { "Count", "Percent", "Everyone", "Off" }.Contains(r.Mode) || r.Mode == "Percent" && r.Amount > 100)) return "Preset contains invalid rule values; nothing imported.";
                 state.Rules = rules.Where(r => r.Work != null).GroupBy(r => r.Work).Select(g => g.First()).ToList();
-                state.BalancedPolicy = (bool?)xml.Attribute("balanced") ?? false;
+                state.BalancedPolicy = balanced;
                 return "Imported " + state.Rules.Count + " rules. Assignments unchanged; stage rules to review.";
             }
             catch (Exception e) { Log.Warning("[mulld Priorities] Import: " + e.Message); return "Could not import rules: " + e.Message; }

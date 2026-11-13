@@ -85,7 +85,56 @@ public static class PlannerTests
         Check(balanced["Grow"]["Cod"]==0, "Balanced: eligibility applies to fallback and backup work");
         var idle = new[] { new ColonyWork { Id="Haul",Target=3,Priority=4,FallbackPriority=4,GeneralWork=true,Candidates=ids.Take(3).Select(id=>new Candidate{Id=id}).ToList() } };
         Check(Planner.AssignColony(idle,2)["Haul"].Values.All(v=>v==2), "Balanced: otherwise idle workers receive useful general work");
+        idle[0].Priority=3;
+        Check(Planner.AssignColony(idle,2)["Haul"].Values.All(v=>v==3), "Explicit support-only general work is not promoted to primary work");
+        idle[0].Priority=4;idle[0].Target=0;
+        Check(Planner.AssignColony(idle,2)["Haul"].Values.All(v=>v==4), "Zero-primary general work keeps fallback priority");
         Check(Planner.AssignColony(Array.Empty<ColonyWork>(),2).Count==0, "Balanced: empty colony safe");
+        var protectedPool = new[] { new Candidate { Id="locked", Locked=true, Current=4, Eligible=false }, new Candidate { Id="qualified", Score=8 } };
+        Check(Planner.Assign(protectedPool,1,2,2,false)["qualified"]==2, "Legacy: disqualified locked fallback cannot consume a qualified staffing slot");
+        protectedPool[0].Eligible=true;
+        Check(Planner.Assign(protectedPool,1,2,2,false)["qualified"]==2, "Legacy: locked low-priority fallback cannot replace a primary");
+        var overflowRule = new ColonyWork { Id="Essential", Essential=true, Target=1, Priority=2, BackupPriority=4, Candidates=new List<Candidate>{new Candidate{Id="busy",MainJobs=2}} };
+        Check(Planner.AssignColony(new[]{overflowRule},2)["Essential"]["busy"]==3, "Balanced: essential overflow stays at support 3 even when backups use 4");
+        var qualifiedRule = new ColonyWork { Id="Qualified", Target=1, Priority=2, Candidates=protectedPool.ToList() };
+        protectedPool[0].Current=1;protectedPool[0].Eligible=false;
+        Check(Planner.AssignColony(new[]{qualifiedRule},2)["Qualified"]["qualified"]==2, "Balanced: ineligible locked worker does not consume a qualified primary slot");
+        qualifiedRule.Backups=1;qualifiedRule.BackupPriority=3;protectedPool[0].Current=3;
+        qualifiedRule.Candidates.Add(new Candidate{Id="backup",Score=4});
+        Check(Planner.AssignColony(new[]{qualifiedRule},2)["Qualified"]["backup"]==3, "Balanced: ineligible locked support does not consume a qualified backup slot");
+        var random = new Random(503);
+        for (int scenario=0; scenario<200; scenario++)
+        {
+            int size=random.Next(1,21), cap=random.Next(1,5);
+            var external=Enumerable.Range(0,size).ToDictionary(i=>i.ToString(),i=>random.Next(0,cap+1));
+            var generated=Enumerable.Range(0,12).Select(i=>new ColonyWork {
+                Id="Work"+i,Order=i,Target=random.Next(0,size+1),Priority=i==0?1:2,Essential=i<4,Backups=random.Next(0,4),BackupPriority=random.Next(3,5),FallbackPriority=4,
+                Candidates=external.Select(kv=>new Candidate {Id=kv.Key,Score=random.Next(0,21),Current=random.Next(0,5),Locked=random.Next(5)==0,Eligible=random.Next(5)>0}).ToList()
+            }).ToList();
+            foreach(var id in external.Keys)
+            {
+                int protectedMain=generated.Count(r=>r.Candidates.Any(c=>c.Id==id&&c.Locked&&c.Current is 1 or 2));
+                foreach(var r in generated)r.Candidates.Find(c=>c.Id==id).MainJobs=external[id]+protectedMain;
+            }
+            var result=Planner.AssignColony(generated,cap);
+            foreach(var r in generated)foreach(var c in r.Candidates)
+            {
+                if(c.Locked&&result[r.Id][c.Id]!=c.Current)throw new Exception("Randomized lock overwritten");
+                if(!c.Locked&&!c.Eligible&&result[r.Id][c.Id]!=0)throw new Exception("Randomized ineligible assignment enabled");
+                if(result[r.Id][c.Id]<0||result[r.Id][c.Id]>4)throw new Exception("Randomized invalid priority");
+            }
+            foreach(var id in external.Keys)
+            {
+                int initial=generated[0].Candidates.Find(c=>c.Id==id).MainJobs;
+                int added=generated.Count(r=>!r.Candidates.Find(c=>c.Id==id).Locked&&result[r.Id][id] is 1 or 2);
+                if(added>Math.Max(0,cap-initial))throw new Exception("Randomized main-job cap exceeded");
+            }
+            foreach(var r in generated.Where(r=>r.Essential&&r.Target>0&&r.Candidates.Any(c=>c.Eligible&&!c.Locked)))
+                if(!r.Candidates.Any(c=>c.Eligible&&result[r.Id][c.Id] is >=1 and <=3))throw new Exception("Randomized essential coverage lost");
+            var repeated=Planner.AssignColony(generated.AsEnumerable().Reverse(),cap);
+            if(generated.Any(r=>r.Candidates.Any(c=>result[r.Id][c.Id]!=repeated[r.Id][c.Id])))throw new Exception("Randomized results depend on rule list order");
+        }
+        Check(true,"200 seeded colony scenarios preserve protection, eligibility, budgets, essential coverage and determinism");
         return passed + " policy checks passed.";
     }
 }

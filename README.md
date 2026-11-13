@@ -9,7 +9,7 @@ Colony needs and work priorities together inside RimWorld 1.7's **Work** tab.
 3. Select a need to see its evidence and preview a temporary boost, or choose **Balanced plan** to propose colony-wide assignments.
 4. Review gold **current → proposed** cells in the real work grid, then apply. A dash means Off. Priorities stay unchanged until approval.
 
-Discard clears the draft. Undo reverses the last applied batch when its assignments have not since changed or become protected. If numbered priorities are disabled, review explicitly offers to enable them for the save across all maps.
+When applying from checkbox mode, undo preserves the stored numbered assignments revealed by the switch. Discard clears the draft. Undo reverses the last applied batch when its assignments have not since changed or become protected. If numbered priorities are disabled, review explicitly offers to enable them for the save across all maps.
 
 Automation starts off. Existing saved custom rules keep their previous behavior until you select Balanced plan or explicitly enable the balanced policy.
 
@@ -63,6 +63,10 @@ Policy tests cover distribution, primary limits, essential support, backups, fal
 ./tools/Smoke-Test.ps1 -CurrentModList -ProfileName integration-check -SavePath 'C:\Path\To\Colony.rws'
 ```
 
-Tests use a disposable profile and copied save, then exit. Rebuild without `-WithSmokeTests` and reinstall afterward. See Tests/Integration.md and Tests/Compatibility.md for results and limits.
+Tests use a disposable profile and copied save, then exit. Rebuild without `-WithSmokeTests` and reinstall afterward. See Tests/Audit.md, Tests/Integration.md and Tests/Compatibility.md for results and limits.
 
 Targets standard Off/1/2/3/4 priorities. Native work columns are retained, including mod columns. Current-map free colonists are managed; slaves and prisoners may count as patients. Multiplayer, expanded priority scales and every race/work-manager combination have not been validated. English interface; independent implementation, with no AutoPriorities code or assets copied.
+
+## GitHub publication
+
+The configured destination is js503/muldPriorities. Once the official GitHub CLI is installed and authenticated with `gh auth login`, run `./tools/Publish-GitHub.ps1`. It creates a private repository if absent, pushes committed history to main without force, and configures upstream tracking. It refuses a different owner, origin or public destination. Credentials are never stored in the repository.
