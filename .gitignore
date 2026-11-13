@@ -1,0 +1,8 @@
+obj/
+bin/
+artifacts/
+*.user
+*.log
+*.tmp
+.vs/
+Local.props

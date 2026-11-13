@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+  <MainButtonDef>
+    <defName>MulldPriorities</defName>
+    <label>mulld Priorities</label>
+    <description>Colony needs, staffing rules and work assignments.</description>
+    <tabWindowClass>Mulld.Priorities.MainTabWindow_Priorities</tabWindowClass>
+    <workerClass>Mulld.Priorities.MainButtonWorker_Priorities</workerClass>
+    <order>31</order>
+  </MainButtonDef>
+</Defs>

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ModMetaData>
+  <name>mulld Priorities</name>
+  <author>mulld</author>
+  <packageId>mulld.priorities</packageId>
+  <supportedVersions><li>1.7</li></supportedVersions>
+  <description>Colony needs and work priorities, together. See food reserves, treatment coverage and harvest pressure, then review suggested assignments or edit priorities yourself. Includes skill-based staffing rules, colonist exclusions, assignment locks, temporary boosts, daily reassignment and undo. Automation is off by default. No Harmony dependency.</description>
+</ModMetaData>

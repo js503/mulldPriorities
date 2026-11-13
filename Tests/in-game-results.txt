@@ -1,0 +1,43 @@
+mulld Priorities in-game smoke test
+PASS Automation starts disabled
+PASS All six live colony indicators computed
+PASS Indicator values nonnegative
+PASS Every work row has a visible label
+PASS Bed rest exempt from main-job cap
+PASS Valid draft accepted
+PASS Manual draft applies to real pawn
+PASS Undo restores real priority
+PASS Locked assignment rejected
+PASS Excluded colonist rejected
+PASS Stale draft rejected
+PASS Out-of-range priority rejected
+PASS Temporary boost tracked
+PASS Expired boost restores original priority
+PASS External edit survives boost expiry
+PASS Staffing plan validates against live colony
+PASS Rule planner preserves real lock
+PASS Rule planner preserves real exclusion
+PASS Boost applies before lock-expiry test
+PASS New lock prevents expiry overwrite
+PASS Replacing boost retains original restore priority
+PASS Undo reinstates previous boost record
+PASS Reinstated boost restores original priority
+PASS Persistent boost staged for save
+PASS Rules export
+PASS Rules import
+PASS Prepared food increases measured runway
+PASS Forbidden meals excluded from runway
+PASS Raw ingredients measured separately
+PASS Harvestable sown crop detected
+PASS Untreated real wound counted in care coverage
+PASS Game save written
+PASS Settings survive save and reload
+PASS Staffing rule survives save and reload
+PASS Lock survives save and reload
+PASS Exclusion survives save and reload
+PASS Boost and undo history survive reload
+PASS Indicators compute after reload
+PASS Daily reassignment advances next-run timer
+PASS Daily staffing rules apply to eligible real pawns
+PASS No game errors during load, reload and five interface views
+COMPLETE 41 in-game checks passed.
