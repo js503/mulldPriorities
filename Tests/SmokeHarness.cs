@@ -32,6 +32,7 @@ namespace Mulld.Priorities
         }
         public static void Update(PriorityMap state)
         {
+            if (GenCommandLine.CommandLineArgPassed("mulldbenchmark")) { PerformanceBenchmark.Update(state); return; }
             if (state.map != Find.CurrentMap || phase == 99) return;
             try
             {
@@ -44,6 +45,7 @@ namespace Mulld.Priorities
                     if (!GenCommandLine.CommandLineArgPassed("mulldloadtest")) Check(!state.Daily && state.Boosts.Count == 0, "Automation starts disabled");
                     else Check(state != null, "Existing colony map gains the integrated Work panel");
                     state.Daily=false;state.Boosts.Clear();state.Undo.Clear();state.UndoBoosts.Clear();state.Rules=new List<WorkRule>();state.BalancedPolicy=false;
+                    AuditDiagnostics(state);
                     var snapshot = state.Snapshot(true);
                     var otherComponent = state.map.components.FirstOrDefault(c => c.GetType().FullName == "AutoPriorities.Core.MapSpecificData");
                     var otherTimer = otherComponent?.GetType().GetProperty("RunOnTimer");
@@ -388,6 +390,22 @@ namespace Mulld.Priorities
                 }
             }
             finally{foreach(var c in originals)c.Pawn.workSettings.SetPriority(c.Work,c.Before);state.Rules=rules;state.BalancedPolicy=policy;state.MaxMainJobs=cap;state.Invalidate();}
+        }
+        private static void AuditDiagnostics(PriorityMap state)
+        {
+            Check(!new MulldSettings().PerformanceDiagnostics,"Performance diagnostics default off");
+            MulldMod.Settings.PerformanceDiagnostics=false;PerformanceMetrics.Enabled=false;PerformanceMetrics.Reset();
+            state.Snapshot(true);state.Plan();
+            Check(PerformanceMetrics.Get(PerformanceOperation.NeedsScan).Samples==0&&PerformanceMetrics.Get(PerformanceOperation.Plan).Samples==0,"Disabled diagnostics collect no scan or plan samples");
+            PerformanceMetrics.Enabled=true;PerformanceMetrics.Reset();state.Snapshot(true);state.Snapshot();state.Plan();
+            Check(PerformanceMetrics.Get(PerformanceOperation.NeedsScan).Samples==1&&PerformanceMetrics.Get(PerformanceOperation.Plan).Samples==1&&PerformanceMetrics.SnapshotHits==1,"Enabled diagnostics measure real scans plans and cache hits");
+            MulldMod.Settings.PerformanceDiagnostics=true;MulldMod.Instance.WriteSettings();
+            string path=Directory.GetFiles(GenFilePaths.ConfigFolderPath,"Mod_*_MulldMod.xml").Single();
+            Check((bool?)System.Xml.Linq.XElement.Load(path).Descendants("performanceDiagnostics").FirstOrDefault()==true,"Diagnostics toggle persists in the isolated Mod Settings file");
+            MulldMod.Settings.PerformanceDiagnostics=false;PerformanceMetrics.Enabled=false;MulldMod.Instance.WriteSettings();
+            Check(!((bool?)System.Xml.Linq.XElement.Load(path).Descendants("performanceDiagnostics").FirstOrDefault()??false),"Diagnostics disabled setting saves as false/default");
+            state.Plan();Check(PerformanceMetrics.Get(PerformanceOperation.Plan).Samples==1,"Turning diagnostics off stops further recording");
+            PerformanceMetrics.Reset();
         }
     }
 }

@@ -47,20 +47,23 @@ namespace Mulld.Priorities
             {
                 var assigned = result[rule.Id];
                 int remaining = Math.Max(0, rule.Target - rule.Candidates.Count(c => c.Locked && c.Eligible && c.Current > 0 && c.Current <= rule.Priority));
-                var chosen = new HashSet<string>();
-                while (remaining-- > 0)
+                // Only the selected worker's load changes, and that worker is
+                // never selected again for this role. Rank once, not once per slot.
+                bool budgeted = !rule.Emergency && rule.CountsAsMain && rule.Priority <= 2;
+                var overflow = budgeted ? new List<Candidate>() : null;
+                var ranked = rule.Candidates.Where(c => c.Eligible && !c.Locked)
+                    .OrderByDescending(c => c.Score - loads[c.Id] * 4d).ThenBy(c => loads[c.Id]).ThenBy(c => c.Id, StringComparer.Ordinal);
+                foreach (var candidate in ranked)
                 {
-                    var candidates = rule.Candidates.Where(c => c.Eligible && !c.Locked && !chosen.Contains(c.Id));
-                    var available = candidates.Where(c => rule.Emergency || !rule.CountsAsMain || rule.Priority > 2 || loads[c.Id] < maxMainJobs).ToList();
-                    bool overflow = available.Count == 0;
-                    var candidate = (overflow ? candidates : available).OrderByDescending(c => c.Score - loads[c.Id] * 4d).ThenBy(c => loads[c.Id]).ThenBy(c => c.Id, StringComparer.Ordinal).FirstOrDefault();
-                    if (candidate == null) break;
-                    // Coverage survives a full main-job budget at support priority.
-                    int priority = overflow && rule.CountsAsMain && !rule.Emergency && rule.Priority <= 2 ? 3 : rule.Priority;
-                    assigned[candidate.Id] = priority;
-                    if (priority <= 2 && rule.CountsAsMain && !rule.Emergency) loads[candidate.Id]++;
-                    chosen.Add(candidate.Id);
+                    if (remaining <= 0) break;
+                    if (budgeted && loads[candidate.Id] >= maxMainJobs) { overflow.Add(candidate); continue; }
+                    assigned[candidate.Id] = rule.Priority;
+                    if (budgeted) loads[candidate.Id]++;
+                    remaining--;
                 }
+                // Coverage survives a full main-job budget at support priority.
+                if (remaining > 0 && overflow != null)
+                    foreach (var candidate in overflow) { if (remaining-- <= 0) break; assigned[candidate.Id] = 3; }
             }
             foreach (var rule in rules)
             {

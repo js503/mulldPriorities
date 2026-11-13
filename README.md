@@ -70,3 +70,19 @@ Targets standard Off/1/2/3/4 priorities. Native work columns are retained, inclu
 ## GitHub publication
 
 The configured destination is js503/muldPriorities. Once the official GitHub CLI is installed and authenticated with `gh auth login`, run `./tools/Publish-GitHub.ps1`. It creates a private repository if absent, pushes committed history to main without force, and configures upstream tracking. It refuses a different owner, origin or public destination. Credentials are never stored in the repository.
+
+## Performance diagnostics
+
+Open Options → Mod Settings → mulld Priorities and enable **Performance diagnostics**. It is off by default and persists globally. The panel shows calls, average/worst milliseconds and average/worst managed KiB allocated for needs scans, planning, validation, apply, automation and the mulld panel's Repaint. Cached needs reads are counted separately. Reset clears all counters; disabling stops recording immediately.
+
+Counters use fixed storage and stack/value scopes. Disabled instrumentation does not query timestamps or allocation counters and allocates zero bytes after initialization. There is no sampling thread, growing history or continuous logging. The display formats values at most once per second while open. Nested operation times overlap; allocations are bytes created on the calling thread, not retained RAM or a per-mod CPU percentage.
+
+See Tests/Performance.md for the reproducible 100-colonist benchmark, limitations and before/after measurements. Benchmark generation lives only in diagnostic builds. Use an isolated runtime when your normal game is running:
+
+```powershell
+./tools/Build.ps1 -WithSmokeTests
+./tools/New-TestRuntime.ps1
+./tools/Smoke-Test.ps1 -GamePath ./artifacts/test-runtime -CurrentModList -Benchmark -ProfileName benchmark -SavePath 'C:\Path\To\Colony.rws'
+```
+
+The benchmark creates a 100-colonist fixture under its disposable profile, warms the operations, measures 64 samples with diagnostics off/on and captures 120 panel repaints per view. It disables tiered JIT only for that benchmark child process. It never changes your normal game settings. Rebuild the release without diagnostics harnesses before installing for play.

@@ -1,0 +1,169 @@
+{
+  "fixture": {
+    "workers": 100,
+    "things": 39747,
+    "haulables": 4001,
+    "readyCrops": 2000,
+    "workTypes": 25,
+    "mods": 97,
+    "version": "0.3.0.0",
+    "runtime": "10.0.15",
+    "logicalProcessors": 16
+  },
+  "offDraftChanges": 677,
+  "off/NeedsScan": {
+    "samples": 64,
+    "batch": 1,
+    "medianMs": 1.7831,
+    "p95Ms": 2.4802,
+    "worstMs": 2.8,
+    "medianBytes": 35416,
+    "gen0Collections": 0
+  },
+  "off/Plan": {
+    "samples": 64,
+    "batch": 1,
+    "medianMs": 1.51475,
+    "p95Ms": 2.2195,
+    "worstMs": 11.3599,
+    "medianBytes": 643288,
+    "gen0Collections": 2
+  },
+  "off/Validate": {
+    "samples": 64,
+    "batch": 1,
+    "medianMs": 0.10815,
+    "p95Ms": 0.1921,
+    "worstMs": 0.2216,
+    "medianBytes": 53656,
+    "gen0Collections": 0
+  },
+  "off/ApplyUndo": {
+    "samples": 64,
+    "batch": 1,
+    "medianMs": 0.17945,
+    "p95Ms": 0.3089,
+    "worstMs": 1.8578,
+    "medianBytes": 102744,
+    "gen0Collections": 1
+  },
+  "off/DailyApplyUndo": {
+    "samples": 64,
+    "batch": 1,
+    "medianMs": 1.7988,
+    "p95Ms": 2.9017,
+    "worstMs": 3.5925,
+    "medianBytes": 746088,
+    "gen0Collections": 3
+  },
+  "off/WaitingAutomation": {
+    "samples": 64,
+    "batch": 10000,
+    "medianMs": 3.46E-06,
+    "p95Ms": 3.71E-06,
+    "worstMs": 4.21E-06,
+    "medianBytes": 0,
+    "gen0Collections": 0
+  },
+  "off/CachedNeeds": {
+    "samples": 64,
+    "batch": 10000,
+    "medianMs": 5E-06,
+    "p95Ms": 5.75E-06,
+    "worstMs": 6.93E-06,
+    "medianBytes": 0,
+    "gen0Collections": 0
+  },
+  "onDraftChanges": 677,
+  "on/NeedsScan": {
+    "samples": 64,
+    "batch": 1,
+    "medianMs": 1.6634,
+    "p95Ms": 2.1568,
+    "worstMs": 4.1212,
+    "medianBytes": 35416,
+    "gen0Collections": 0
+  },
+  "on/Plan": {
+    "samples": 64,
+    "batch": 1,
+    "medianMs": 1.4429,
+    "p95Ms": 2.428,
+    "worstMs": 2.7102,
+    "medianBytes": 643288,
+    "gen0Collections": 3
+  },
+  "on/Validate": {
+    "samples": 64,
+    "batch": 1,
+    "medianMs": 0.1092,
+    "p95Ms": 0.1503,
+    "worstMs": 0.2241,
+    "medianBytes": 53656,
+    "gen0Collections": 0
+  },
+  "on/ApplyUndo": {
+    "samples": 64,
+    "batch": 1,
+    "medianMs": 0.1697,
+    "p95Ms": 0.2231,
+    "worstMs": 0.259,
+    "medianBytes": 102744,
+    "gen0Collections": 0
+  },
+  "on/DailyApplyUndo": {
+    "samples": 64,
+    "batch": 1,
+    "medianMs": 1.7063,
+    "p95Ms": 2.5165,
+    "worstMs": 3.1797,
+    "medianBytes": 746088,
+    "gen0Collections": 3
+  },
+  "on/WaitingAutomation": {
+    "samples": 64,
+    "batch": 10000,
+    "medianMs": 3.44E-06,
+    "p95Ms": 5.67E-06,
+    "worstMs": 1.416E-05,
+    "medianBytes": 0,
+    "gen0Collections": 0
+  },
+  "on/CachedNeeds": {
+    "samples": 64,
+    "batch": 10000,
+    "medianMs": 4.92E-06,
+    "p95Ms": 7.31E-06,
+    "worstMs": 8.3E-06,
+    "medianBytes": 0,
+    "gen0Collections": 0
+  },
+  "panelNeeds": {
+    "samples": 120,
+    "averageMs": 0.0652091666666667,
+    "worstMs": 0.1217,
+    "averageBytes": 1256,
+    "worstBytes": 1256
+  },
+  "panelColonists": {
+    "samples": 120,
+    "averageMs": 0.15885,
+    "worstMs": 0.2434,
+    "averageBytes": 12008,
+    "worstBytes": 12008
+  },
+  "panelRules": {
+    "samples": 120,
+    "averageMs": 0.1166975,
+    "worstMs": 0.4002,
+    "averageBytes": 3486.26666666667,
+    "worstBytes": 5184
+  },
+  "panelReview": {
+    "samples": 120,
+    "averageMs": 0.0653141666666667,
+    "worstMs": 0.1391,
+    "averageBytes": 1032,
+    "worstBytes": 1032
+  }
+}

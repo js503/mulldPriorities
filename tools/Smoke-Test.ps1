@@ -3,10 +3,12 @@ param(
     [switch]$CurrentModList,
     [string]$ProfileName = 'smoke-profile',
     [string]$SavePath,
-    [switch]$Baseline
+    [switch]$Baseline,
+    [switch]$Benchmark
 )
 $ErrorActionPreference = 'Stop'
 if ($Baseline -and !$CurrentModList) { throw 'Baseline requires CurrentModList.' }
+if ($Benchmark -and (!$SavePath -or $Baseline)) { throw 'Benchmark requires a copied SavePath and cannot run with Baseline.' }
 $repo = Split-Path $PSScriptRoot -Parent
 if ($ProfileName -notmatch '^[a-zA-Z0-9_-]+$') { throw 'ProfileName must be a simple directory name.' }
 $profile = Join-Path $repo ('artifacts/' + $ProfileName)
@@ -32,6 +34,7 @@ $prefs = [xml]'<PrefsData><screenWidth>1280</screenWidth><screenHeight>900</scre
 $prefs.Save((Join-Path $config 'Prefs.xml'))
 $arguments = @('-mulldsmoketest', ('"-savedatafolder=' + $profile + '"'), ('"-logfile=' + (Join-Path $profile 'Player.log') + '"'))
 if ($Baseline) { $arguments += '-mulldbaseline' }
+if ($Benchmark) { $arguments += '-mulldbenchmark' }
 if ($SavePath) {
     if (!(Test-Path -LiteralPath $SavePath) -or (Get-Item -LiteralPath $SavePath).Length -eq 0) { throw 'SavePath must be a nonempty save file.' }
     $saves = Join-Path $profile 'Saves'; New-Item -ItemType Directory -Path $saves -Force | Out-Null
@@ -39,7 +42,11 @@ if ($SavePath) {
     Get-FileHash -LiteralPath $SavePath | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $profile 'source-save-hash.json')
     $arguments += '-mulldloadtest'
 } else { $arguments += '-quicktest' }
-$process = Start-Process -FilePath (Join-Path $GamePath 'RimWorld.exe') -ArgumentList $arguments -WorkingDirectory $GamePath -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $profile 'stdout.log') -RedirectStandardError (Join-Path $profile 'stderr.log')
+$previousTiering = $env:DOTNET_TieredCompilation
+try {
+    if ($Benchmark) { $env:DOTNET_TieredCompilation = '0' } # Stable benchmark code, not a game-wide setting.
+    $process = Start-Process -FilePath (Join-Path $GamePath 'RimWorld.exe') -ArgumentList $arguments -WorkingDirectory $GamePath -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $profile 'stdout.log') -RedirectStandardError (Join-Path $profile 'stderr.log')
+} finally { $env:DOTNET_TieredCompilation = $previousTiering }
 Write-Output "Smoke test PID: $($process.Id)"
 Write-Output "Isolated results: $profile"
 if ($process.WaitForExit(1000)) { Write-Output "Launcher exited: $($process.ExitCode)" }

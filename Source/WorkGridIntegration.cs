@@ -7,10 +7,16 @@ namespace Mulld.Priorities
 {
     public sealed class MulldMod : Mod
     {
+        public static MulldMod Instance { get; private set; }
+        public static MulldSettings Settings { get; private set; }
         public MulldMod(ModContentPack content) : base(content)
         {
+            Instance = this; Settings = GetSettings<MulldSettings>();
+            PerformanceMetrics.Enabled = Settings.PerformanceDiagnostics;
             new Harmony("mulld.priorities").PatchAll(typeof(MulldMod).Assembly);
         }
+        public override string SettingsCategory() => "mulld Priorities";
+        public override void DoSettingsWindowContents(Rect inRect) => PerformancePanel.Draw(inRect);
     }
     [HarmonyPatch(typeof(PawnColumnWorker_WorkPriority), nameof(PawnColumnWorker_WorkPriority.DoCell))]
     public static class WorkGridPreview

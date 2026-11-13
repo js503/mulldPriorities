@@ -22,6 +22,7 @@ $sources = @(Get-ChildItem -LiteralPath (Join-Path $repo 'Source') -Filter '*.cs
 if ($ProbeOnly) { $sources = @(Get-Item -LiteralPath (Join-Path $repo 'Tests/CompatibilityProbe.cs')) }
 if ($WithSmokeTests) {
     $sources += Get-Item -LiteralPath (Join-Path $repo 'Tests/SmokeHarness.cs')
+    $sources += Get-Item -LiteralPath (Join-Path $repo 'Tests/PerformanceBenchmark.cs')
 }
 $target = Join-Path $output 'Mulld.Priorities.dll'
 $assemblyName = 'Mulld.Priorities'

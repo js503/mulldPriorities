@@ -135,6 +135,18 @@ public static class PlannerTests
             if(generated.Any(r=>r.Candidates.Any(c=>result[r.Id][c.Id]!=repeated[r.Id][c.Id])))throw new Exception("Randomized results depend on rule list order");
         }
         Check(true,"200 seeded colony scenarios preserve protection, eligibility, budgets, essential coverage and determinism");
+        for(int scenario=0;scenario<500;scenario++)
+        {
+            int population=random.Next(1,31);
+            var generated=Enumerable.Range(0,random.Next(1,16)).Select(i=>new ColonyWork {
+                Id="Role"+i,Order=random.Next(0,5),Target=random.Next(0,population+1),Priority=random.Next(1,5),Backups=random.Next(0,5),BackupPriority=random.Next(3,5),FallbackPriority=random.Next(2)==0?0:4,
+                Essential=random.Next(3)==0,Emergency=random.Next(8)==0,CountsAsMain=random.Next(5)>0,GeneralWork=random.Next(5)==0,
+                Candidates=Enumerable.Range(0,population).Select(p=>new Candidate{Id=p.ToString(),Score=random.Next(0,21),MainJobs=random.Next(0,5),Current=random.Next(0,5),Locked=random.Next(5)==0,Eligible=random.Next(5)>0}).ToList()
+            }).ToList();
+            int cap=random.Next(1,5);var expected=ReferencePlanner.AssignColony(generated,cap);var actual=Planner.AssignColony(generated,cap);
+            if(generated.Any(r=>r.Candidates.Any(c=>actual[r.Id][c.Id]!=expected[r.Id][c.Id])))throw new Exception("Optimized planner differs from reference at scenario "+scenario);
+        }
+        Check(true,"500 mixed-rule scenarios match the pre-optimization planner exactly");
         return passed + " policy checks passed.";
     }
 }

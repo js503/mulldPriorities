@@ -24,8 +24,12 @@ namespace Mulld.Priorities
         private int lastScan = -9999;
         public PriorityMap(Map map) : base(map) { }
         public List<Pawn> Workers => map.mapPawns.FreeColonistsSpawned.Where(p => !p.Dead && p.workSettings != null && p.workSettings.EverWork).OrderBy(p => p.LabelShort).ToList();
-        public bool Managed(Pawn pawn) => !Excluded.Contains(pawn.ThingID);
-        public bool IsLocked(Pawn pawn, WorkTypeDef work) => Locks.Contains(WorkAccess.Key(pawn, work));
+        public int WorkerCount
+        {
+            get { int count = 0; foreach (var p in map.mapPawns.FreeColonistsSpawned) if (!p.Dead && p.workSettings != null && p.workSettings.EverWork) count++; return count; }
+        }
+        public bool Managed(Pawn pawn) => Excluded.Count == 0 || !Excluded.Contains(pawn.ThingID);
+        public bool IsLocked(Pawn pawn, WorkTypeDef work) => Locks.Count > 0 && Locks.Contains(WorkAccess.Key(pawn, work));
         public int MainJobs(Pawn pawn) => WorkAccess.Works().Count(w => WorkAccess.Capable(pawn, w) && pawn.workSettings.GetPriority(w) is 1 or 2 && WorkAccess.MainWork(w));
         public WorkRule Rule(WorkTypeDef work)
         {
@@ -40,10 +44,12 @@ namespace Mulld.Priorities
             int tick = Find.TickManager.TicksGame;
             if (snapshot == null || refresh || tick - lastScan >= 2500)
             {
+                using var measurement = PerformanceMetrics.Measure(PerformanceOperation.NeedsScan);
                 if (snapshot != null && tick - snapshot.Tick >= 2500) { LastHaulCount = snapshot.Haulables; LastHaulTick = snapshot.Tick; }
                 snapshot = Needs.Read(this);
                 lastScan = tick;
             }
+            else PerformanceMetrics.CacheHit();
             return snapshot;
         }
         public void Invalidate() { lastScan = -9999; }
@@ -56,26 +62,29 @@ namespace Mulld.Priorities
         }
         public List<Assignment> Plan()
         {
+            using var measurement = PerformanceMetrics.Measure(PerformanceOperation.Plan);
             if (BalancedPolicy) return PlanBalanced();
             var assignments = new List<Assignment>();
-            var pawns = Workers.Where(p => Managed(p) && WorkAccess.Available(p)).ToList();
+            var pawns = Workers;
+            var ids = pawns.ToDictionary(p => p, p => p.ThingID);
+            pawns.RemoveAll(p => Excluded.Contains(ids[p]) || !WorkAccess.Available(p));
             // Main-job caps include unmanaged work and locked/temporarily boosted jobs.
             var managedDefs = Rules.Where(r => r.Enabled && r.Work != null).Select(r => r.Work).ToHashSet();
             var works = WorkAccess.Works();
             var protectedKeys = Locks.Concat(Boosts.Select(b => b.Key)).ToHashSet();
-            var loads = pawns.ToDictionary(p => p.ThingID, p => works.Count(w => WorkAccess.Capable(p, w) && p.workSettings.GetPriority(w) is 1 or 2 && WorkAccess.MainWork(w) && (!managedDefs.Contains(w) || protectedKeys.Contains(WorkAccess.Key(p, w)))));
+            var loads = pawns.ToDictionary(p => p, p => works.Count(w => WorkAccess.Capable(p, w) && p.workSettings.GetPriority(w) is 1 or 2 && WorkAccess.MainWork(w) && (!managedDefs.Contains(w) || protectedKeys.Contains(WorkAccess.Key(p, w)))));
             foreach (var rule in Rules.Where(r => r.Enabled && r.Work != null).OrderBy(r => r.Priority).ThenByDescending(r => r.Work.naturalPriority))
             {
                 int priority = Math.Clamp(rule.Priority, 1, 4);
                 var eligible = pawns.Where(p => WorkAccess.Capable(p, rule.Work)).ToList();
-                var candidates = eligible.Select(p => new Candidate { Id = p.ThingID, Current = p.workSettings.GetPriority(rule.Work), Eligible = (!rule.AdultsOnly || WorkAccess.Adult(p)) && WorkAccess.Skill(p, rule.Work) >= rule.MinSkill, Locked = protectedKeys.Contains(WorkAccess.Key(p, rule.Work)), Score = WorkAccess.Score(p, rule.Work, rule.FavorPassion), MainJobs = loads[p.ThingID] }).ToList();
+                var candidates = eligible.Select(p => new Candidate { Id = ids[p], Current = p.workSettings.GetPriority(rule.Work), Eligible = (!rule.AdultsOnly || WorkAccess.Adult(p)) && WorkAccess.Skill(p, rule.Work) >= rule.MinSkill, Locked = protectedKeys.Count > 0 && protectedKeys.Contains(WorkAccess.Key(p, rule.Work)), Score = WorkAccess.Score(p, rule.Work, rule.FavorPassion), MainJobs = loads[p] }).ToList();
                 var planned = Planner.Assign(candidates, Planner.StaffingTarget(rule.Mode, rule.Amount, candidates.Count(c => c.Eligible)), priority, MaxMainJobs, !WorkAccess.MainWork(rule.Work));
                 foreach (var p in eligible)
                 {
                     string key = WorkAccess.Key(p, rule.Work);
                     bool protect = protectedKeys.Contains(key);
-                    int next = planned[p.ThingID];
-                    if (!protect && next is 1 or 2 && WorkAccess.MainWork(rule.Work)) loads[p.ThingID]++;
+                    int next = planned[ids[p]];
+                    if (!protect && next is 1 or 2 && WorkAccess.MainWork(rule.Work)) loads[p]++;
                     if (!protect && next != p.workSettings.GetPriority(rule.Work)) assignments.Add(new Assignment(p, rule.Work, p.workSettings.GetPriority(rule.Work), next, "Staffing rule: " + rule.Mode + " " + rule.Amount));
                 }
             }
@@ -83,19 +92,21 @@ namespace Mulld.Priorities
         }
         private List<Assignment> PlanBalanced()
         {
-            var workers = Workers.Where(p => Managed(p) && WorkAccess.Available(p)).ToList();
+            var workers = Workers;
+            var ids = workers.ToDictionary(p => p, p => p.ThingID);
+            workers.RemoveAll(p => Excluded.Contains(ids[p]) || !WorkAccess.Available(p));
             var rules = Rules.Where(r => r.Enabled && r.Work != null).ToList();
             var managed = rules.Select(r => r.Work).ToHashSet();
             var works = WorkAccess.Works();
             var protectedKeys = Locks.Concat(Boosts.Select(b => b.Key)).ToHashSet();
-            var loads = workers.ToDictionary(p => p.ThingID, p => works.Count(w => WorkAccess.Capable(p, w) && WorkAccess.MainWork(w) && p.workSettings.GetPriority(w) is 1 or 2 && (!managed.Contains(w) || protectedKeys.Contains(WorkAccess.Key(p, w)))));
+            var loads = workers.ToDictionary(p => p, p => works.Count(w => WorkAccess.Capable(p, w) && WorkAccess.MainWork(w) && p.workSettings.GetPriority(w) is 1 or 2 && (!managed.Contains(w) || protectedKeys.Contains(WorkAccess.Key(p, w)))));
             var inputs = rules.Select(rule =>
             {
                 var candidates = workers.Where(p => WorkAccess.Capable(p, rule.Work)).Select(p => new Candidate
                 {
-                    Id = p.ThingID, Score = WorkAccess.Score(p, rule.Work, rule.FavorPassion), MainJobs = loads[p.ThingID], Current = p.workSettings.GetPriority(rule.Work),
+                    Id = ids[p], Score = WorkAccess.Score(p, rule.Work, rule.FavorPassion), MainJobs = loads[p], Current = p.workSettings.GetPriority(rule.Work),
                     Eligible = (!rule.AdultsOnly || WorkAccess.Adult(p)) && WorkAccess.Skill(p, rule.Work) >= rule.MinSkill,
-                    Locked = protectedKeys.Contains(WorkAccess.Key(p, rule.Work))
+                    Locked = protectedKeys.Count > 0 && protectedKeys.Contains(WorkAccess.Key(p, rule.Work))
                 }).ToList();
                 return new ColonyWork { Id = rule.Work.defName, Candidates = candidates, Target = Planner.StaffingTarget(rule.Mode, rule.Amount, candidates.Count(c => c.Eligible)), Priority = rule.Priority,
                     Backups = rule.Mode == "Off" ? 0 : rule.Backups, BackupPriority = rule.BackupPriority, FallbackPriority = rule.Mode == "Off" ? 0 : rule.FallbackPriority,
@@ -106,8 +117,8 @@ namespace Mulld.Priorities
             foreach (var rule in rules)
                 foreach (var pawn in workers.Where(p => WorkAccess.Capable(p, rule.Work)))
                 {
-                    int before = pawn.workSettings.GetPriority(rule.Work), after = planned[rule.Work.defName][pawn.ThingID];
-                    if (after == before || protectedKeys.Contains(WorkAccess.Key(pawn, rule.Work))) continue;
+                    int before = pawn.workSettings.GetPriority(rule.Work), after = planned[rule.Work.defName][ids[pawn]];
+                    if (after == before || protectedKeys.Count > 0 && protectedKeys.Contains(WorkAccess.Key(pawn, rule.Work))) continue;
                     string role = after == 0 ? "disabled by rule" : after <= 2 ? "primary role" : after == rule.BackupPriority ? "backup/support" : "fallback work";
                     assignments.Add(new Assignment(pawn, rule.Work, before, after, "Staffing rule: balanced " + role));
                 }
@@ -115,14 +126,15 @@ namespace Mulld.Priorities
         }
         public string Validate(IEnumerable<Assignment> changes)
         {
-            var keys = new HashSet<string>();
+            using var measurement = PerformanceMetrics.Measure(PerformanceOperation.Validate);
+            var keys = new HashSet<(Pawn, WorkTypeDef)>();
             var workers = Workers.ToHashSet();
             foreach (var c in changes)
             {
                 if (c == null || c.Pawn == null || c.Work == null || !c.Pawn.Spawned || c.Pawn.Map != map || !workers.Contains(c.Pawn)) return "A colonist or work type is no longer available. Refresh the plan.";
                 if (!WorkAccess.Available(c.Pawn)) return c.Pawn.LabelShort + " is now unavailable. Discard and recalculate the plan.";
                 if (!Managed(c.Pawn) || IsLocked(c.Pawn, c.Work) || !WorkAccess.Capable(c.Pawn, c.Work)) return c.Pawn.LabelShort + " is excluded, locked or incapable of this work.";
-                if (c.After < 0 || c.After > 4 || !keys.Add(c.Key)) return "The plan contains an invalid or duplicate assignment.";
+                if (c.After < 0 || c.After > 4 || !keys.Add((c.Pawn, c.Work))) return "The plan contains an invalid or duplicate assignment.";
                 if (c.Pawn.workSettings.GetPriority(c.Work) != c.Before) return c.Pawn.LabelShort + "'s priorities changed after this draft was made. Discard and recalculate.";
                 if (c.NeedKey != null && (!WorkAccess.Available(c.Pawn) || c.ExpiresAt <= Find.TickManager.TicksGame)) return "A temporary boost is stale or its colonist is unavailable. Recalculate it.";
             }
@@ -130,6 +142,7 @@ namespace Mulld.Priorities
         }
         public string Apply(List<Assignment> changes, bool enableManual)
         {
+            using var measurement = PerformanceMetrics.Measure(PerformanceOperation.Apply);
             if (changes.Count == 0) return "No changes to apply.";
             string error = Validate(changes);
             if (error != null) return error;
@@ -146,18 +159,22 @@ namespace Mulld.Priorities
                 error = Validate(changes);
                 if (error != null) return "Numbered priorities enabled. " + error;
             }
-            var applied = new List<Assignment>();
+            int applied = 0;
             try
             {
-                foreach (var change in changes) { change.Pawn.workSettings.SetPriority(change.Work, change.After); applied.Add(change); }
+                foreach (var change in changes) { change.Pawn.workSettings.SetPriority(change.Work, change.After); applied++; }
             }
             catch (Exception e)
             {
-                foreach (var change in applied) change.Pawn.workSettings.SetPriority(change.Work, change.Before);
+                for (int i=0; i<applied; i++) changes[i].Pawn.workSettings.SetPriority(changes[i].Work, changes[i].Before);
                 Log.Error("[mulld Priorities] Assignment failed and was rolled back: " + e);
                 return "An assignment failed; applied changes were rolled back. See the game log.";
             }
-            Undo = changes.Select(c => c.Copy()).ToList();
+            Undo = changes; // Apply owns the cloned batch, never the caller's preview.
+            if (Boosts.Count == 0 && changes.TrueForAll(c => c.NeedKey == null))
+            {
+                UndoBoosts.Clear(); Invalidate(); return null;
+            }
             UndoBoosts = Boosts.Where(b => changes.Any(c => c.Key == b.Key)).Select(b => b.Copy()).ToList();
             foreach (var c in changes)
             {
@@ -178,15 +195,20 @@ namespace Mulld.Priorities
                 bool protect = c.Pawn == null || c.Work == null || !c.Pawn.Spawned || c.Pawn.Map != map || !Managed(c.Pawn) || IsLocked(c.Pawn, c.Work) || !WorkAccess.Capable(c.Pawn, c.Work);
                 if (protect || !Planner.CanRestore(c.Pawn.workSettings.GetPriority(c.Work), c.After, protect)) { skipped++; continue; }
                 c.Pawn.workSettings.SetPriority(c.Work, c.Before);
-                Boosts.RemoveAll(b => b.Key == c.Key);
-                var previousBoost = UndoBoosts.Find(b => b.Key == c.Key);
-                if (previousBoost != null) Boosts.Add(previousBoost.Copy());
+                if (Boosts.Count > 0 || UndoBoosts.Count > 0) RestoreUndoBoost(c);
                 restored++;
             }
             Undo.Clear();
             UndoBoosts.Clear();
             Invalidate();
             return restored + " restored; " + skipped + " skipped because they changed or are now protected.";
+        }
+        private void RestoreUndoBoost(Assignment change)
+        {
+            string key = change.Key;
+            Boosts.RemoveAll(b => b.Key == key);
+            var previousBoost = UndoBoosts.Find(b => b.Key == key);
+            if (previousBoost != null) Boosts.Add(previousBoost.Copy());
         }
         public override void MapComponentTick()
         {
@@ -198,6 +220,7 @@ namespace Mulld.Priorities
         {
             bool dailyDue = Daily && tick >= NextDailyTick && Current.Game.playSettings.useWorkPriorities;
             if (Boosts.Count == 0 && !dailyDue) return;
+            using var measurement = PerformanceMetrics.Measure(PerformanceOperation.Automation);
             try
             {
                 // Daily staffing does not need a full map/food/plant scan. Only

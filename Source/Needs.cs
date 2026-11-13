@@ -12,6 +12,11 @@ namespace Mulld.Priorities
         {
             var map = state.map;
             var colonists = map.mapPawns.FreeColonistsSpawned.Where(p => !p.Dead).ToList();
+            var works = WorkAccess.Works();
+            var workers = colonists.Where(p => p.workSettings != null && p.workSettings.EverWork).ToList();
+            var mainJobs = colonists.ToDictionary(p => p, p => p.workSettings == null ? 0 : works.Count(w => WorkAccess.Capable(p, w) && p.workSettings.GetPriority(w) is 1 or 2 && WorkAccess.MainWork(w)));
+            Assignment SuggestFor(string work, int priority, string key, string reason, int duration, Func<Pawn, bool> filter = null)
+                => Suggest(state, workers, mainJobs, work, priority, key, reason, duration, filter);
             var result = new ColonySnapshot { Tick = Find.TickManager.TicksGame };
             float prepared = 0, demand = 0;
             foreach (var pawn in colonists)
@@ -49,7 +54,7 @@ namespace Mulld.Priorities
                 WorkName = "Cooking", Resolved = result.FoodDays >= state.FoodTarget,
                 Explanation = result.RawNutrition > 0 ? "Raw food is present. Giving cooking time ahead of other work may help. Check cooking bills, fuel and ingredient access too." : "Raw food is scarce. Raising cooking priority alone will not fix the shortage; check growing, hunting or trade."
             };
-            if (!foodNeed.Resolved && result.RawNutrition > 0) foodNeed.Suggestion = Suggest(state, "Cooking", 2, "food", "Build the prepared food reserve", 60000);
+            if (!foodNeed.Resolved && result.RawNutrition > 0) foodNeed.Suggestion = SuggestFor("Cooking", 2, "food", "Build the prepared food reserve", 60000);
             var careNeed = new ColonyNeed
             {
                 Key = "care", Label = "Care coverage", Value = patients.Count + " : " + doctors,
@@ -59,7 +64,7 @@ namespace Mulld.Priorities
                 WorkName = "Doctor", Resolved = patients.Count == 0,
                 Explanation = "Coverage is a staffing indicator, not a treatment-time estimate. Sleeping doctors, access, medicine and bed availability can still delay care."
             };
-            if (patients.Count > doctors) careNeed.Suggestion = Suggest(state, "Doctor", 1, "care", "Add treatment capacity", 30000, p => !patients.Contains(p));
+            if (patients.Count > doctors) careNeed.Suggestion = SuggestFor("Doctor", 1, "care", "Add treatment capacity", 30000, p => !patients.Contains(p));
             var harvestNeed = new ColonyNeed
             {
                 Key = "harvest", Label = "Harvest pressure", Value = result.RiskyCrops > 0 ? result.RiskyCrops + " at risk" : result.ReadyCrops + " ready",
@@ -69,7 +74,7 @@ namespace Mulld.Priorities
                 WorkName = "Growing", Resolved = result.ReadyCrops == 0,
                 Explanation = "An extra grower may help clear ready crops. Harvest permissions, allowed areas and access can still block the work. Blighted crops require cutting instead."
             };
-            if (result.ReadyCrops > 0) harvestNeed.Suggestion = Suggest(state, "Growing", 2, "harvest", "Clear ready crops", 60000);
+            if (result.ReadyCrops > 0) harvestNeed.Suggestion = SuggestFor("Growing", 2, "harvest", "Clear ready crops", 60000);
             result.Haulables = map.listerHaulables.ThingsPotentiallyNeedingHauling().Count(t => t.Spawned && !t.IsForbidden(Faction.OfPlayer) && !t.Position.Fogged(map));
             int delta = state.LastHaulCount < 0 ? 0 : result.Haulables - state.LastHaulCount;
             var haul = new ColonyNeed
@@ -80,26 +85,25 @@ namespace Mulld.Priorities
                 Evidence = "Potential hauling candidates, not confirmed reachable jobs. Previous sample: " + (state.LastHaulTick < 0 ? "none" : ((result.Tick - state.LastHaulTick) / 2500f).ToString("0.0") + " in-game hours ago") + ".",
                 Explanation = "If the backlog keeps growing, add hauling capacity. First check storage space, allowed areas, forbiddance and access.", Resolved = result.Haulables == 0
             };
-            if (result.Haulables > 0) haul.Suggestion = Suggest(state, "Hauling", 3, "hauling", "Reduce hauling backlog", 60000);
+            if (result.Haulables > 0) haul.Suggestion = SuggestFor("Hauling", 3, "hauling", "Reduce hauling backlog", 60000);
             var essentials = new[] { "Firefighter", "Doctor", "Cooking" }.Select(DefDatabase<WorkTypeDef>.GetNamedSilentFail).Where(w => w != null).ToList();
             var uncovered = essentials.Where(w => !colonists.Any(p => WorkAccess.Capable(p, w) && WorkAccess.Available(p) && p.workSettings.GetPriority(w) > 0)).ToList();
             var coverage = new ColonyNeed { Key = "coverage", Label = "Critical coverage", Value = uncovered.Count + " gaps", Severity = uncovered.Count > 0 ? 2 : 0, Status = uncovered.Count > 0 ? string.Join(", ", uncovered.Select(w => w.labelShort)) : "Essential roles assigned", Evidence = "Firefighting, doctoring and cooking checked against standing, undrafted colonists outside mental states.", Explanation = "Assign a capable backup for uncovered essential work. Coverage does not guarantee an executable job.", Resolved = uncovered.Count == 0, WorkName = uncovered.FirstOrDefault()?.defName };
-            if (uncovered.Count > 0) coverage.Suggestion = Suggest(state, uncovered[0].defName, uncovered[0].defName == "Cooking" ? 2 : 1, "coverage", "Cover essential work", 60000);
-            var works = WorkAccess.Works();
-            var overloaded = colonists.Where(p => p.workSettings != null && works.Count(w => WorkAccess.Capable(p, w) && p.workSettings.GetPriority(w) is 1 or 2 && WorkAccess.MainWork(w)) > state.MaxMainJobs).ToList();
+            if (uncovered.Count > 0) coverage.Suggestion = SuggestFor(uncovered[0].defName, uncovered[0].defName == "Cooking" ? 2 : 1, "coverage", "Cover essential work", 60000);
+            var overloaded = colonists.Where(p => p.workSettings != null && mainJobs[p] > state.MaxMainJobs).ToList();
             var conflict = new ColonyNeed { Key = "commitments", Label = "Competing commitments", Value = overloaded.Count + " colonists", Severity = overloaded.Count > 0 ? 1 : 0, Status = "More than " + state.MaxMainJobs + " main jobs", Evidence = string.Join(", ", overloaded.Select(p => p.LabelShort)), Explanation = "Review these colonists' priority 1-2 jobs and move a secondary responsibility to a capable backup. This counts assignments, not measured working time.", Resolved = overloaded.Count == 0 };
             result.Needs.AddRange(new[] { foodNeed, careNeed, harvestNeed, haul, coverage, conflict });
             return result;
         }
 
-        private static Assignment Suggest(PriorityMap state, string workName, int priority, string needKey, string reason, int duration, Func<Pawn, bool> filter = null)
+        private static Assignment Suggest(PriorityMap state, List<Pawn> workers, Dictionary<Pawn, int> mainJobs, string workName, int priority, string needKey, string reason, int duration, Func<Pawn, bool> filter = null)
         {
             var work = DefDatabase<WorkTypeDef>.GetNamedSilentFail(workName);
             if (work == null) return null;
-            var candidates = state.Workers.Where(p => state.Managed(p) && WorkAccess.Capable(p, work) && WorkAccess.Available(p) && !state.IsLocked(p, work)
+            var candidates = workers.Where(p => state.Managed(p) && WorkAccess.Capable(p, work) && WorkAccess.Available(p) && !state.IsLocked(p, work)
                 && (!WorkAccess.Dangerous(work) || WorkAccess.Adult(p)) && (filter == null || filter(p))
                 && (p.workSettings.GetPriority(work) == 0 || p.workSettings.GetPriority(work) > priority));
-            var pawn = candidates.OrderByDescending(p => WorkAccess.Score(p, work, true) - state.MainJobs(p) * 2f).ThenBy(p => p.ThingID, StringComparer.Ordinal).FirstOrDefault();
+            var pawn = candidates.OrderByDescending(p => WorkAccess.Score(p, work, true) - mainJobs[p] * 2f).ThenBy(p => p.ThingID, StringComparer.Ordinal).FirstOrDefault();
             return pawn == null ? null : new Assignment(pawn, work, pawn.workSettings.GetPriority(work), priority, reason)
             { NeedKey = needKey, ExpiresAt = Find.TickManager.TicksGame + duration };
         }
