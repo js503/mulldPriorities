@@ -1,4 +1,4 @@
-param([string]$GamePath = 'C:\Program Files (x86)\Steam\steamapps\common\RimWorld', [switch]$WithSmokeTests, [switch]$ProbeOnly)
+param([string]$GamePath = 'C:\Program Files (x86)\Steam\steamapps\common\RimWorld', [switch]$WithSmokeTests, [switch]$ProbeOnly, [string]$HarmonyPath = 'C:\Program Files (x86)\Steam\steamapps\workshop\content\294100\2009463077\1.7\Assemblies\0Harmony.dll')
 $ErrorActionPreference = 'Stop'
 if ($ProbeOnly -and $WithSmokeTests) { throw 'ProbeOnly and WithSmokeTests are separate build modes.' }
 $repo = Split-Path $PSScriptRoot -Parent
@@ -14,6 +14,10 @@ if ([Environment]::Version.Major -lt 10) { throw 'Use PowerShell 7.6+ (.NET 10),
 $references = @((Get-ChildItem -LiteralPath (Join-Path $PSHOME 'ref') -Filter '*.dll').FullName)
 $references += Join-Path $GamePath 'Assembly-CSharp.dll'
 $references += Join-Path $GamePath 'UnityStubs.dll'
+if (!$ProbeOnly) {
+    if (!(Test-Path -LiteralPath $HarmonyPath)) { throw 'Harmony is required. Pass -HarmonyPath pointing to the installed 0Harmony.dll.' }
+    $references += $HarmonyPath
+}
 $sources = @(Get-ChildItem -LiteralPath (Join-Path $repo 'Source') -Filter '*.cs' -Recurse | Sort-Object FullName)
 if ($ProbeOnly) { $sources = @(Get-Item -LiteralPath (Join-Path $repo 'Tests/CompatibilityProbe.cs')) }
 if ($WithSmokeTests) {

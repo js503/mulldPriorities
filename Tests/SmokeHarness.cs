@@ -41,7 +41,9 @@ namespace Mulld.Priorities
                     phase = 1; oldMap = state.map;
                     File.WriteAllText(Results, "mulld Priorities in-game smoke test" + Environment.NewLine);
                     File.WriteAllText(Path.Combine(GenFilePaths.SaveDataFolderPath, "loaded-mods.txt"), string.Join(Environment.NewLine, LoadedModManager.RunningMods.Select(m => m.PackageId + " | " + m.Name)));
-                    Check(!state.Daily && state.Boosts.Count == 0, "Automation starts disabled");
+                    if (!GenCommandLine.CommandLineArgPassed("mulldloadtest")) Check(!state.Daily && state.Boosts.Count == 0, "Automation starts disabled");
+                    else Check(state != null, "Existing colony map gains the integrated Work panel");
+                    state.Daily=false;state.Boosts.Clear();state.Undo.Clear();state.UndoBoosts.Clear();state.Rules=new List<WorkRule>();state.BalancedPolicy=false;
                     var snapshot = state.Snapshot(true);
                     var otherComponent = state.map.components.FirstOrDefault(c => c.GetType().FullName == "AutoPriorities.Core.MapSpecificData");
                     var otherTimer = otherComponent?.GetType().GetProperty("RunOnTimer");
@@ -159,6 +161,22 @@ namespace Mulld.Priorities
                     Check(state.Snapshot(true).ReadyCrops >= 1, "Harvestable sown crop detected");
                     var wound = HediffMaker.MakeHediff(HediffDefOf.Cut, pawn, pawn.RaceProps.body.corePart); wound.Severity = 2f; pawn.health.AddHediff(wound);
                     Check(state.Snapshot(true).Patients >= 1, "Untreated real wound counted in care coverage");
+                    var originalRules = state.Rules; bool originalPolicy = state.BalancedPolicy;
+                    state.Rules = new List<WorkRule>(); Presets.Balanced(state);
+                    var beforeBalanced = state.Workers.SelectMany(p => WorkAccess.Works().Where(w => WorkAccess.Capable(p,w)).Select(w => p.ThingID+"|"+w.defName+"="+p.workSettings.GetPriority(w))).ToList();
+                    var balancedPlan = state.Plan();
+                    Check(state.Validate(balancedPlan) == null, "Balanced primary/backup plan validates against live colony");
+                    Check(beforeBalanced.SequenceEqual(state.Workers.SelectMany(p => WorkAccess.Works().Where(w => WorkAccess.Capable(p,w)).Select(w => p.ThingID+"|"+w.defName+"="+p.workSettings.GetPriority(w)))), "Balanced preview does not mutate real priorities");
+                    int Projected(Pawn p, WorkTypeDef w) => balancedPlan.FirstOrDefault(c=>c.Pawn==p&&c.Work==w)?.After ?? p.workSettings.GetPriority(w);
+                    foreach(var essentialName in new[]{"Doctor","Cooking","Growing","Construction"})
+                    {
+                        var essential=DefDatabase<WorkTypeDef>.GetNamed(essentialName);
+                        var capable=state.Workers.Where(p=>state.Managed(p)&&WorkAccess.Available(p)&&WorkAccess.Capable(p,essential)&&!state.IsLocked(p,essential)).ToList();
+                        if(capable.Count>0)Check(capable.Any(p=>Projected(p,essential)>0&&Projected(p,essential)<=3),"Balanced essential coverage: "+essentialName);
+                    }
+                    Check(balancedPlan.All(c=>c.Work.defName!="Hunting"&&c.Work.defName!="DarkStudy"),"Balanced preset preserves manual hunting and dark study");
+                    Check(balancedPlan.All(c=>!state.IsLocked(c.Pawn,c.Work)&&state.Managed(c.Pawn)),"Balanced preset preserves locks and excluded pawns");
+                    state.Rules=originalRules;state.BalancedPolicy=originalPolicy;
                     GameDataSaveLoader.SaveGame("mulld-smoke");
                     Check(File.Exists(GenFilePaths.FilePathForSavedGame("mulld-smoke")), "Game save written");
                     phase = 2;
@@ -197,14 +215,16 @@ namespace Mulld.Priorities
                     Check(dailyWorkers.Count > 0 && dailyWorkers.All(p => p.workSettings.GetPriority(work) == 3), "Daily staffing rules apply to eligible real pawns");
                     state.Daily = false;
                     if (otherTimer != null && originalOtherTimer.HasValue) otherTimer.SetValue(otherComponent, originalOtherTimer.Value);
-                    Find.MainTabsRoot.SetCurrentTab(DefDatabase<MainButtonDef>.GetNamed("MulldPriorities"));
+                    Check(DefDatabase<MainButtonDef>.GetNamed("Work").TabWindow is MainTabWindow_Priorities, "mulld is attached to the vanilla Work tab");
+                    Check(DefDatabase<MainButtonDef>.GetNamedSilentFail("MulldPriorities") == null, "Standalone mulld tab removed");
+                    Find.MainTabsRoot.SetCurrentTab(DefDatabase<MainButtonDef>.GetNamed("Work"));
                     Find.TickManager.Pause();
                     frames = 0;
                 }
                 else if (phase == 3)
                 {
                     frames++;
-                    var window = (MainTabWindow_Priorities)DefDatabase<MainButtonDef>.GetNamed("MulldPriorities").TabWindow;
+                    var window = (MainTabWindow_Priorities)DefDatabase<MainButtonDef>.GetNamed("Work").TabWindow;
                     var work = DefDatabase<WorkTypeDef>.GetNamed(workName);
                     if (frames == 30) ScreenCapture.CaptureScreenshot(Path.Combine(GenFilePaths.SaveDataFolderPath, "mulld-main-interface.png"));
                     if (frames == 45) window.SmokeView("Work", work);
@@ -213,9 +233,30 @@ namespace Mulld.Priorities
                     if (frames == 120) ScreenCapture.CaptureScreenshot(Path.Combine(GenFilePaths.SaveDataFolderPath, "mulld-colonists.png"));
                     if (frames == 135) window.SmokeView("Settings");
                     if (frames == 165) ScreenCapture.CaptureScreenshot(Path.Combine(GenFilePaths.SaveDataFolderPath, "mulld-settings.png"));
-                    if (frames == 180) window.SmokeView("Work", work, true);
+                    if (frames == 180)
+                    {
+                        var before = state.Workers.SelectMany(p=>WorkAccess.Works().Where(w=>WorkAccess.Capable(p,w)).Select(w=>p.ThingID+"|"+w.defName+"="+p.workSettings.GetPriority(w))).ToList();
+                        window.SmokeView("Work", work, true);
+                        Check(window.SmokeDraftCount>0,"Balanced changes staged for native-grid review");
+                        Check(before.SequenceEqual(state.Workers.SelectMany(p=>WorkAccess.Works().Where(w=>WorkAccess.Capable(p,w)).Select(w=>p.ThingID+"|"+w.defName+"="+p.workSettings.GetPriority(w)))),"Opening grid review leaves real priorities untouched");
+                    }
                     if (frames == 210) ScreenCapture.CaptureScreenshot(Path.Combine(GenFilePaths.SaveDataFolderPath, "mulld-review.png"));
-                    if (frames == 240)
+                    if (frames == 225)
+                    {
+                        Check(window.SmokeApply()==null,"Reviewed balanced plan applies from the integrated panel");
+                        var activeWorkers=state.Workers.Where(p=>state.Managed(p)&&WorkAccess.Available(p)).ToList();
+                        Check(activeWorkers.All(p=>WorkAccess.Works().Any(w=>WorkAccess.MainWork(w)&&WorkAccess.Capable(p,w)&&p.workSettings.GetPriority(w) is 1 or 2)),"Applied balanced plan gives each available managed pawn a primary role");
+                        foreach(var name in new[]{"Doctor","Cooking","Growing","Construction"})
+                        {
+                            var w=DefDatabase<WorkTypeDef>.GetNamed(name);
+                            var eligible=activeWorkers.Where(p=>WorkAccess.Capable(p,w)&&!state.IsLocked(p,w)).ToList();
+                            if(eligible.Count>0)Check(eligible.Any(p=>p.workSettings.GetPriority(w)>0),"Applied balanced coverage: "+name);
+                        }
+                    }
+                    if(frames==250)ScreenCapture.CaptureScreenshot(Path.Combine(GenFilePaths.SaveDataFolderPath,"mulld-balanced-applied.png"));
+                    if(frames==265)window.SmokeCollapse();
+                    if(frames==290)ScreenCapture.CaptureScreenshot(Path.Combine(GenFilePaths.SaveDataFolderPath,"mulld-collapsed.png"));
+                    if (frames == 320)
                     {
                         var errors = Log.Messages.Where(m => m.type == LogMessageType.Error).ToList();
                         File.WriteAllText(Path.Combine(GenFilePaths.SaveDataFolderPath, "game-messages.txt"), string.Join(Environment.NewLine, Log.Messages.Select(m => m.type + ": " + m.text + Environment.NewLine + m.StackTrace)));

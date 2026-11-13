@@ -12,5 +12,5 @@ if (Test-Path -LiteralPath $existing) {
     if ($metadata.ModMetaData.packageId -ne 'mulld.priorities') { throw 'Refusing to overwrite a different mod.' }
 }
 New-Item -ItemType Directory -Path $destination -Force | Out-Null
-foreach ($folder in @('About', 'Defs', 'Assemblies')) { Copy-Item -LiteralPath (Join-Path $repo $folder) -Destination $destination -Recurse -Force }
+foreach ($folder in @('About', 'Defs', 'Patches', 'Assemblies')) { Copy-Item -LiteralPath (Join-Path $repo $folder) -Destination $destination -Recurse -Force }
 Write-Output "Installed mulld Priorities to $destination"

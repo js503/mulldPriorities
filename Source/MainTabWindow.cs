@@ -7,68 +7,81 @@ using Verse;
 
 namespace Mulld.Priorities
 {
-    public sealed class MainTabWindow_Priorities : MainTabWindow
+    // Retain the game's Work table, columns, scrolling and other mods' cell workers.
+    public sealed class MainTabWindow_Priorities : MainTabWindow_Work
     {
         private readonly Dictionary<string, Assignment> draft = new Dictionary<string, Assignment>();
         private Map boundMap;
-        private string selected = "food", page = "Work", status = "Select a colony need or edit work assignments.";
-        private WorkTypeDef expanded;
+        private string selected = "food", page = "Needs", status = "Select a need, or preview a balanced plan.";
         private Vector2 scroll;
-        private bool review, enableNumbered;
-        private List<Assignment> reviewPlan = new List<Assignment>();
-        private static readonly Color Gold = new Color(0.82f, 0.68f, 0.43f);
-        private static readonly Color Muted = new Color(0.72f, 0.76f, 0.73f);
-        public override Vector2 RequestedTabSize => new Vector2(Math.Min(1180f, UI.screenWidth - 30f), Math.Min(850f, UI.screenHeight - 65f));
-        public override void PostOpen() { base.PostOpen(); Bind(); }
+        private bool drawingNative, resizePending, review, enableNumbered;
+        public bool Expanded = true;
+        internal static MainTabWindow_Priorities Drawing;
+        internal bool Reviewing => Expanded && review;
         private PriorityMap State => Find.CurrentMap?.GetComponent<PriorityMap>();
+        private static readonly Color Gold = new Color(.86f, .71f, .44f);
+        private static readonly Color Muted = new Color(.72f, .76f, .72f);
+        private float PanelHeight => !Expanded ? 0 : Math.Min(review ? 192 : page == "Needs" ? 230 : 330, Math.Max(192, UI.screenHeight * .46f));
+        protected override float ExtraTopSpace => base.ExtraTopSpace + (drawingNative ? 0 : PanelHeight);
+        public override void PostOpen() { Bind(); base.PostOpen(); }
         private void Bind()
         {
             if (boundMap == Find.CurrentMap) return;
-            boundMap = Find.CurrentMap;
-            draft.Clear(); review = false; expanded = null; scroll = Vector2.zero;
-            status = "Changes apply only to the displayed map.";
+            boundMap = Find.CurrentMap; draft.Clear(); review = false; scroll = Vector2.zero;
+            status = "Work changes require review and approval.";
         }
         public override void DoWindowContents(Rect rect)
         {
             Bind();
-            if (State == null) { Widgets.Label(rect, "Open a colony map to manage work."); return; }
-            var font = Text.Font; var color = GUI.color; var anchor = Text.Anchor; var wrap = Text.WordWrap;
+            var font = Text.Font; var anchor = Text.Anchor; var color = GUI.color; bool wrap = Text.WordWrap;
             try
             {
-                Text.Font = GameFont.Medium;
-                Label(new Rect(0, 0, rect.width - 210, 34), "mulld Priorities");
-                Text.Font = GameFont.Small;
-                string otherManager = Compatibility.AutomaticManager(boundMap);
-                Label(new Rect(0, 35, rect.width - 210, 26), State.Workers.Count + " workers · " + (otherManager != null ? otherManager + " timer active; mulld daily rules paused" : State.Daily ? "Daily rule assignment" : "Manual approval") + " · " + boundMap.Parent.LabelCap);
-                if (Widgets.ButtonText(new Rect(rect.width - 195, 4, 95, 30), "Refresh")) { State.Snapshot(true); status = "Colony indicators refreshed; drafts preserved."; }
-                if (Widgets.ButtonText(new Rect(rect.width - 94, 4, 94, 30), "All needs")) NeedMenu();
-                DrawNeeds(new Rect(0, 70, rect.width, 174));
-                float x = 0;
-                foreach (string tab in new[] { "Work", "Colonists", "Settings" })
+                float height = PanelHeight;
+                if (Expanded && State != null) DrawPanel(new Rect(0, 0, rect.width, height));
+                Widgets.BeginGroup(new Rect(0, height, rect.width, Math.Max(30, rect.height - height)));
+                try
                 {
-                    if (Widgets.ButtonText(new Rect(x, 255, 105, 30), page == tab ? "[ " + tab + " ]" : tab)) { page = tab; scroll = Vector2.zero; }
-                    x += 112;
+                    drawingNative = true; Drawing = this;
+                    base.DoWindowContents(new Rect(0, 0, rect.width, Math.Max(30, rect.height - height)));
+                    Text.Font = GameFont.Small; Text.Anchor = TextAnchor.UpperLeft; GUI.color = Color.white;
+                    if (Widgets.ButtonText(new Rect(rect.width - 184, 4, 180, 28), "mulld Priorities " + (Expanded ? "▴" : "▾")))
+                    { Expanded = !Expanded; resizePending = true; }
                 }
-                Rect body = new Rect(0, 298, rect.width, Math.Max(60, rect.height - 376));
-                if (review) DrawReview(body);
-                else if (page == "Colonists") DrawColonists(body);
-                else if (page == "Settings") DrawSettings(body);
-                else DrawWork(body);
-                DrawFooter(new Rect(0, rect.height - 66, rect.width, 66));
+                finally { Drawing = null; drawingNative = false; Widgets.EndGroup(); }
             }
-            finally { Text.Font = font; GUI.color = color; Text.Anchor = anchor; Text.WordWrap = wrap; }
+            finally { Text.Font = font; Text.Anchor = anchor; GUI.color = color; Text.WordWrap = wrap; }
+            if (resizePending) { resizePending = false; base.Notify_ResolutionChanged(); SetInitialSizeAndPosition(); }
         }
-        private static void Label(Rect rect, string text, Color? color = null)
+        private static void Label(Rect rect, string text, Color? tint = null)
         {
-            var old = GUI.color; if (color.HasValue) GUI.color = color.Value;
-            Widgets.LabelEllipses(rect, text ?? "");
-            if (!string.IsNullOrEmpty(text)) TooltipHandler.TipRegion(rect, text);
+            var old = GUI.color; if (tint.HasValue) GUI.color = tint.Value;
+            Widgets.LabelEllipses(rect, text ?? ""); if (!string.IsNullOrEmpty(text)) TooltipHandler.TipRegion(rect, text);
             GUI.color = old;
         }
-        private void NeedMenu()
+        private void DrawPanel(Rect area)
         {
-            var menu = State.Snapshot().Needs.Select(n => new FloatMenuOption(n.Label + ": " + n.Value, () => { selected = n.Key; review = false; })).ToList();
-            Find.WindowStack.Add(new FloatMenu(menu));
+            Text.Font = GameFont.Small; GUI.color = Color.white; Text.Anchor = TextAnchor.UpperLeft;
+            Text.Font = GameFont.Medium; Label(new Rect(5, 0, 240, 30), review ? "Review in grid" : "mulld Priorities"); Text.Font = GameFont.Small;
+            string manager = Compatibility.AutomaticManager(boundMap);
+            string context = review ? draft.Values.Select(c => c.Pawn).Distinct().Count() + " pawns · " + draft.Count + " changes · Not applied" : State.Workers.Count + (State.Workers.Count == 1 ? " worker" : " workers") + " · " + (manager != null ? manager + " timer active; mulld daily rules paused" : State.Daily ? "Daily balanced/rule assignment" : "Manual approval");
+            Label(new Rect(5, 30, area.width - 10, 23), context, Muted);
+            if (!review)
+            {
+                float x = area.width - 376;
+                foreach (var tab in new[] { "Needs", "Rules", "Colonists", "Settings" })
+                {
+                    if (Widgets.ButtonText(new Rect(x, 1, 90, 27), page == tab ? "[" + tab + "]" : tab)) { page = tab; scroll = Vector2.zero; resizePending = true; }
+                    x += 94;
+                }
+            }
+            Rect body = new Rect(5, 58, area.width - 10, Math.Max(30, area.height - 128));
+            if (review) DrawReview(body);
+            else if (page == "Needs") DrawNeeds(body);
+            else if (page == "Rules") DrawRules(body);
+            else if (page == "Colonists") DrawColonists(body);
+            else DrawSettings(body);
+            DrawFooter(new Rect(5, area.height - 63, area.width - 10, 57));
+            Widgets.DrawBoxSolid(new Rect(0, area.height - 2, area.width, 2), Gold);
         }
         private void DrawNeeds(Rect area)
         {
@@ -76,250 +89,175 @@ namespace Mulld.Priorities
             var choices = snapshot.Needs.Where(n => n.Key is "food" or "care" or "harvest").ToList();
             var active = snapshot.Needs.Find(n => n.Key == selected) ?? choices[0];
             if (!choices.Contains(active)) choices[2] = active;
+            float cardHeight = Math.Min(59, area.height - 30);
             for (int i = 0; i < choices.Count; i++)
             {
-                var need = choices[i];
-                var box = new Rect(area.x + i * (area.width + 10) / 3, area.y, (area.width - 20) / 3, 78);
+                var need = choices[i]; var box = new Rect(area.x + i * (area.width + 9) / 3, area.y, (area.width - 18) / 3, cardHeight);
                 Widgets.DrawMenuSection(box);
                 if (need.Key == selected) Widgets.DrawBoxSolid(new Rect(box.x, box.y, 3, box.height), Gold);
-                Label(new Rect(box.x + 12, box.y + 5, box.width - 24, 22), need.Label, need.Severity > 1 ? Gold : Muted);
-                Text.Font = GameFont.Medium; Label(new Rect(box.x + 12, box.y + 25, box.width - 24, 30), need.Value); Text.Font = GameFont.Small;
-                Label(new Rect(box.x + 12, box.y + 54, box.width - 24, 20), need.Status, Muted);
-                if (Widgets.ButtonInvisible(box)) { selected = need.Key; review = false; }
+                Label(new Rect(box.x + 10, box.y + 2, box.width - 20, 22), need.Label, need.Severity > 1 ? Gold : Muted);
+                Text.Font = GameFont.Medium; Label(new Rect(box.x + 10, box.y + 24, box.width - 20, 30), need.Value); Text.Font = GameFont.Small;
+                TooltipHandler.TipRegion(box, need.Status + "\n" + need.Evidence);
+                if (Widgets.ButtonInvisible(box)) selected = need.Key;
             }
-            var detail = new Rect(area.x, area.y + 88, area.width, 86);
-            Widgets.DrawMenuSection(detail);
-            float actionWidth = 185;
-            Label(new Rect(detail.x + 10, detail.y + 4, detail.width - actionWidth - 30, 25), active.Label + " — " + active.Explanation);
-            Label(new Rect(detail.x + 10, detail.y + 30, detail.width - actionWidth - 30, 22), active.Evidence, Muted);
+            Label(new Rect(area.x + 4, area.y + cardHeight + 6, area.width - 210, 24), active.Resolved ? active.Status : active.Explanation, Muted);
             var suggestion = active.Suggestion;
-            string caption = suggestion == null ? "No safe change found" : "Stage " + suggestion.Pawn.LabelShort + ": " + suggestion.After;
-            if (Widgets.ButtonText(new Rect(detail.xMax - actionWidth - 10, detail.y + 12, actionWidth, 32), caption, active: suggestion != null))
-            {
-                Stage(suggestion.Copy()); expanded = suggestion.Work; page = "Work"; review = false;
-                status = "Temporary boost staged. Other work may slow down; review the competing assignments.";
-            }
-            string protection = suggestion == null ? "Check bills, access, existing priorities, exclusions and locks." : "Restore when need resolves, or after " + ((suggestion.ExpiresAt - snapshot.Tick) / 2500f).ToString("0") + " in-game hours. Other work may slow down.";
-            Label(new Rect(detail.x + 10, detail.y + 57, detail.width - 20, 22), protection, Muted);
+            if (Widgets.ButtonText(new Rect(area.xMax - 195, area.y + cardHeight + 3, 190, 27), active.Resolved ? "Need covered" : suggestion == null ? "No safe boost" : "Preview " + suggestion.Pawn.LabelShort + " boost", active: suggestion != null))
+            { Stage(suggestion.Copy()); BeginReview(); }
         }
-        private void DrawWork(Rect area)
+        private void DrawReview(Rect area)
         {
-            var toolbar = new Rect(area.x, area.y, area.width, 32);
-            if (Widgets.ButtonText(new Rect(toolbar.x, toolbar.y, 150, 28), "Colony preset"))
-                Find.WindowStack.Add(new FloatMenu(new List<FloatMenuOption> {
-                    new FloatMenuOption("Balanced colony (sets rules only)", () => { Presets.Balanced(State); status = "Balanced rules selected. Stage rules to preview assignments."; }),
-                    new FloatMenuOption("Export rules", () => { status = Presets.Export(State); }),
-                    new FloatMenuOption("Import rules", () => { status = Presets.Import(State); }) }));
-            if (Widgets.ButtonText(new Rect(toolbar.x + 160, toolbar.y, 160, 28), "Stage rule assignments"))
+            Label(new Rect(area.x, area.y - 1, area.width, 24), "Gold cells show current → proposed.  – = Off.  Other assignments stay unchanged.", Gold);
+            if (!Current.Game.playSettings.useWorkPriorities)
+                Widgets.CheckboxLabeled(new Rect(area.x, area.y + 24, area.width - 5, 27), "Enable numbered work priorities for this save when applying", ref enableNumbered);
+            else
             {
-                int count = 0;
-                foreach (var key in draft.Where(kv => kv.Value.Reason.StartsWith("Staffing rule:", StringComparison.Ordinal)).Select(kv => kv.Key).ToList()) draft.Remove(key);
-                foreach (var change in State.Plan()) { if (!draft.ContainsKey(change.Key)) { Stage(change); count++; } }
-                status = count + " rule changes staged; other manual draft edits preserved.";
+                var gaps = new[] { "Doctor", "Cooking", "Growing", "Construction" }.Select(DefDatabase<WorkTypeDef>.GetNamedSilentFail).Where(w => w != null)
+                    .Where(w => !State.Workers.Any(p => WorkAccess.Capable(p, w) && WorkAccess.Available(p) && PreviewPriority(p, w) > 0)).ToList();
+                Label(new Rect(area.x, area.y + 24, area.width, 24), gaps.Count == 0 ? "Essential roles stay covered in this draft." : "No available assigned worker: " + string.Join(", ", gaps.Select(WorkAccess.Label)), gaps.Count == 0 ? Muted : Gold);
             }
-            Label(new Rect(toolbar.x + 332, toolbar.y + 3, Math.Max(0, toolbar.width - 332), 24), "1 = first · 4 = spare time · Off = unassigned", Muted);
+        }
+        private void DrawFooter(Rect area)
+        {
+            Label(new Rect(area.x, area.y, area.width - 4, 23), status, Muted);
+            float y = area.y + 26;
+            if (!review)
+            {
+                if (Widgets.ButtonText(new Rect(area.x, y, 142, 28), "Balanced plan")) { Presets.Balanced(State); StageRules(); BeginReview(); }
+                if (Widgets.ButtonText(new Rect(area.x + 150, y, 140, 28), "Preview rules")) { StageRules(); BeginReview(); }
+            }
+            else if (Widgets.ButtonText(new Rect(area.x, y, 130, 28), "Back to editing")) { review = false; resizePending = true; }
+            float x = area.xMax - 448;
+            if (Widgets.ButtonText(new Rect(x, y, 92, 28), "Discard", active: draft.Count > 0)) { draft.Clear(); review = false; resizePending = true; status = "Draft discarded; actual priorities unchanged."; }
+            if (Widgets.ButtonText(new Rect(x + 100, y, 112, 28), "Undo apply", active: State.Undo.Count > 0 && draft.Count == 0)) { status = State.UndoLast(); }
+            string label = review ? "Apply " + draft.Count + " changes" : "Review " + draft.Count + " changes";
+            if (Widgets.ButtonText(new Rect(x + 220, y, 228, 28), label, active: draft.Count > 0 && (!review || Current.Game.playSettings.useWorkPriorities || enableNumbered)))
+            {
+                if (!review) BeginReview();
+                else
+                {
+                    string error = State.Apply(draft.Values.Select(c => c.Copy()).ToList(), enableNumbered);
+                    if (error != null) status = error;
+                    else { draft.Clear(); review = false; resizePending = true; status = "Priorities applied. Previous assignments saved for undo."; }
+                }
+            }
+        }
+        private void BeginReview()
+        {
+            review = draft.Count > 0; enableNumbered = false; resizePending = true;
+            status = review ? "Review only: the game still uses your current priorities until you apply." : "No assignment changes are needed for these rules.";
+        }
+        private void StageRules()
+        {
+            foreach (var key in draft.Where(kv => kv.Value.Reason.StartsWith("Staffing rule:", StringComparison.Ordinal)).Select(kv => kv.Key).ToList()) draft.Remove(key);
+            foreach (var change in State.Plan()) if (!draft.ContainsKey(change.Key)) Stage(change);
+        }
+        private void Stage(Assignment change)
+        {
+            if (draft.TryGetValue(change.Key, out var previous)) change.Before = previous.Before;
+            if (change.Before == change.After) draft.Remove(change.Key); else draft[change.Key] = change;
+        }
+        private int PreviewPriority(Pawn pawn, WorkTypeDef work) => draft.TryGetValue(WorkAccess.Key(pawn, work), out var c) ? c.After : pawn.workSettings.GetPriority(work);
+        internal bool TryPreview(Pawn pawn, WorkTypeDef work, out Assignment change) => draft.TryGetValue(WorkAccess.Key(pawn, work), out change);
+        private static void Menu(IEnumerable<string> items, Action<string> setter) => Find.WindowStack.Add(new FloatMenu(items.Select(item => new FloatMenuOption(item, () => setter(item))).ToList()));
+        private void DrawRules(Rect area)
+        {
             var works = WorkAccess.Works().OrderByDescending(w => w.naturalPriority).ToList();
-            var workers = State.Workers;
-            float expandedHeight = Math.Max(340, workers.Count * 33 + 90);
-            var outer = new Rect(area.x, area.y + 36, area.width, area.height - 36);
-            var view = new Rect(0, 0, outer.width - 20, works.Count * 64 + (expanded == null ? 0 : expandedHeight) + 28);
-            Widgets.BeginScrollView(outer, ref scroll, view);
+            var view = new Rect(0, 0, area.width - 20, works.Count * 61 + 28);
+            Widgets.BeginScrollView(area, ref scroll, view);
             try
             {
-                float a = view.width * .19f, b = view.width * .24f, c = view.width * .43f;
-                Label(new Rect(8, 0, a, 24), "Work", Muted); Label(new Rect(a, 0, b, 24), "Staffing rule", Muted); Label(new Rect(a + b, 0, c, 24), "Assigned priorities", Muted);
-                float y = 28;
-                var active = State.Snapshot().Needs.Find(n => n.Key == selected);
+                Label(new Rect(2, 0, view.width, 23), "Primary roles · Support backups · Fallback when main work is done", Muted);
+                float y = 29;
                 foreach (var work in works)
                 {
-                    var row = new Rect(0, y, view.width, 62);
-                    if (active?.WorkName == work.defName) Widgets.DrawHighlight(row);
-                    Label(new Rect(8, y + 3, a - 12, 26), WorkAccess.Label(work));
-                    var need = State.Snapshot().Needs.Find(n => n.WorkName == work.defName);
-                    Label(new Rect(8, y + 31, a - 12, 22), need == null ? "" : need.Value, need != null && need.Severity > 1 ? Gold : Muted);
-                    var rule = State.Rule(work);
-                    Label(new Rect(a, y + 3, b - 8, 25), rule.Enabled ? (rule.Mode == "Count" ? "Best " + rule.Amount : rule.Mode == "Percent" ? rule.Amount + "%" : rule.Mode) + " · priority " + rule.Priority : "Manual assignments");
-                    Label(new Rect(a, y + 31, b - 8, 22), rule.Enabled ? "Skill + " + (rule.FavorPassion ? "passion" : "workload") : "Rule disabled", Muted);
-                    string assigned = string.Join(", ", workers.Where(p => WorkAccess.Capable(p, work) && PreviewPriority(p, work) > 0).Select(p => p.LabelShort + " " + PreviewPriority(p, work) + (draft.ContainsKey(WorkAccess.Key(p, work)) ? "*" : "") + (State.IsLocked(p, work) ? " [L]" : "")));
-                    Label(new Rect(a + b, y + 3, c - 12, 47), string.IsNullOrEmpty(assigned) ? "No assignments" : assigned);
-                    if (Widgets.ButtonText(new Rect(a + b + c, y + 10, view.width - a - b - c - 6, 29), expanded == work ? "Close" : "Edit")) expanded = expanded == work ? null : work;
-                    Widgets.DrawLineHorizontal(0, y + 62, view.width);
-                    y += 64;
-                    if (expanded == work) { DrawEditor(new Rect(8, y + 6, view.width - 16, expandedHeight - 12), work, workers); y += expandedHeight; }
+                    var r = State.Rule(work);
+                    Widgets.CheckboxLabeled(new Rect(2, y, 142, 27), WorkAccess.Label(work), ref r.Enabled);
+                    if (Widgets.ButtonText(new Rect(150, y, 170, 27), r.Mode + (r.Mode is "Count" or "Percent" ? " " + r.Amount : "")))
+                        Find.WindowStack.Add(new FloatMenu(new List<FloatMenuOption> { new FloatMenuOption("Everyone",()=>r.Mode="Everyone"),new FloatMenuOption("Off",()=>r.Mode="Off"),new FloatMenuOption("Best 1",()=>{r.Mode="Count";r.Amount=1;}),new FloatMenuOption("Best 2",()=>{r.Mode="Count";r.Amount=2;}),new FloatMenuOption("Best 3",()=>{r.Mode="Count";r.Amount=3;}),new FloatMenuOption("25%",()=>{r.Mode="Percent";r.Amount=25;}),new FloatMenuOption("50%",()=>{r.Mode="Percent";r.Amount=50;}),new FloatMenuOption("75%",()=>{r.Mode="Percent";r.Amount=75;}) }));
+                    if (Widgets.ButtonText(new Rect(328, y, 105, 27), "Primary " + r.Priority)) Menu(new[]{"1","2","3","4"},v=>r.Priority=int.Parse(v));
+                    if (Widgets.ButtonText(new Rect(441, y, 130, 27), r.Backups + " backups at " + r.BackupPriority)) Menu(new[]{"0","1","2","3"},v=>r.Backups=int.Parse(v));
+                    if (Widgets.ButtonText(new Rect(579, y, 130, 27), "Fallback " + WorkAccess.PriorityLabel(r.FallbackPriority))) Menu(new[]{"Off","3","4"},v=>r.FallbackPriority=v=="Off"?0:int.Parse(v));
+                    if (Widgets.ButtonText(new Rect(717, y, Math.Max(80, view.width - 721), 27), "Skill ≥ " + r.MinSkill)) Menu(Enumerable.Range(0,21).Select(i=>i.ToString()),v=>r.MinSkill=int.Parse(v));
+                    bool adult = r.AdultsOnly, passion = r.FavorPassion;
+                    Widgets.CheckboxLabeled(new Rect(150, y+30, 160, 24), "Adults only", ref adult); r.AdultsOnly = adult;
+                    Widgets.CheckboxLabeled(new Rect(328, y+30, 180, 24), "Favor passions", ref passion); r.FavorPassion = passion;
+                    Label(new Rect(579, y+30, view.width-583, 24), r.Enabled ? r.Essential ? "Essential coverage retained at support priority if main slots are full" : "Rule saved; preview before applying" : "Manual assignments preserved", Muted);
+                    y += 61;
                 }
             }
             finally { Widgets.EndScrollView(); }
         }
-        private int PreviewPriority(Pawn p, WorkTypeDef work) => draft.TryGetValue(WorkAccess.Key(p, work), out var change) ? change.After : p.workSettings.GetPriority(work);
-        private void Stage(Assignment assignment)
-        {
-            if (draft.TryGetValue(assignment.Key, out var previous)) assignment.Before = previous.Before;
-            if (assignment.After == assignment.Before) draft.Remove(assignment.Key);
-            else draft[assignment.Key] = assignment;
-        }
-        private static void Menu(IEnumerable<string> values, Action<string> setter) => Find.WindowStack.Add(new FloatMenu(values.Select(value => new FloatMenuOption(value, () => setter(value))).ToList()));
-        private void DrawEditor(Rect rect, WorkTypeDef work, List<Pawn> workers)
-        {
-            var rule = State.Rule(work);
-            float split = rect.width * .54f;
-            Label(new Rect(rect.x, rect.y, split, 25), "Colonist assignments · * = staged");
-            float y = rect.y + 30;
-            foreach (var p in workers)
-            {
-                bool capable = WorkAccess.Capable(p, work), managed = State.Managed(p), locked = State.IsLocked(p, work);
-                Label(new Rect(rect.x, y, split - 180, 28), p.LabelShort + (capable ? " · skill " + WorkAccess.Skill(p, work).ToString("0") : " · incapable"), managed ? (Color?)null : Muted);
-                if (Widgets.ButtonText(new Rect(rect.x + split - 176, y, 80, 27), capable ? WorkAccess.PriorityLabel(PreviewPriority(p, work)) : "—", active: capable && managed && !locked))
-                {
-                    var pawn = p;
-                    Menu(new[] { "Off", "1", "2", "3", "4" }, value => { Stage(new Assignment(pawn, work, pawn.workSettings.GetPriority(work), value == "Off" ? 0 : int.Parse(value), "Manual adjustment")); status = "Manual assignment staged."; });
-                }
-                if (Widgets.ButtonText(new Rect(rect.x + split - 90, y, 75, 27), locked ? "Locked" : "Lock", active: capable))
-                { State.SetLock(p, work, !locked); draft.Remove(WorkAccess.Key(p, work)); status = "Lock updated. Locked assignments are protected from plans and undo."; }
-                y += 33;
-            }
-            Label(new Rect(rect.x, y + 4, split - 15, 42), "Exclusions are in Colonists. Rules affect only eligible colonists.", Muted);
-            float rx = rect.x + split + 6, width = rect.width - split - 6; y = rect.y;
-            Widgets.CheckboxLabeled(new Rect(rx, y, width, 28), "Manage with a staffing rule", ref rule.Enabled); y += 34;
-            if (Widgets.ButtonText(new Rect(rx, y, width, 28), "Staffing: " + rule.Mode)) Menu(new[] { "Count", "Percent", "Everyone", "Off" }, value => rule.Mode = value); y += 34;
-            if (rule.Mode is "Count" or "Percent")
-            {
-                Label(new Rect(rx, y, width * .52f, 26), rule.Mode == "Count" ? "Colonists: " + rule.Amount : "Percent: " + rule.Amount);
-                if (Widgets.ButtonText(new Rect(rx + width * .56f, y, 38, 26), "−")) rule.Amount = Math.Max(0, rule.Amount - (rule.Mode == "Percent" ? 5 : 1));
-                if (Widgets.ButtonText(new Rect(rx + width * .56f + 44, y, 38, 26), "+")) rule.Amount = Math.Min(rule.Mode == "Percent" ? 100 : workers.Count, rule.Amount + (rule.Mode == "Percent" ? 5 : 1));
-                y += 32;
-            }
-            if (Widgets.ButtonText(new Rect(rx, y, width, 27), "Rule priority: " + rule.Priority)) Menu(new[] { "1", "2", "3", "4" }, value => rule.Priority = int.Parse(value)); y += 33;
-            Widgets.CheckboxLabeled(new Rect(rx, y, width, 27), "Favor passions", ref rule.FavorPassion); y += 29;
-            Widgets.CheckboxLabeled(new Rect(rx, y, width, 27), "Adults only", ref rule.AdultsOnly); y += 29;
-            if (Widgets.ButtonText(new Rect(rx, y, width, 27), "Minimum skill: " + rule.MinSkill)) Menu(Enumerable.Range(0, 21).Select(i => i.ToString()), value => rule.MinSkill = int.Parse(value)); y += 32;
-            Label(new Rect(rx, y, width, 36), "Rules are saved immediately; work changes require review or daily automation.", Muted);
-        }
         private void DrawColonists(Rect area)
         {
             var workers = State.Workers;
-            var view = new Rect(0, 0, area.width - 20, workers.Count * 46 + 50);
+            var view = new Rect(0, 0, area.width - 20, workers.Count * 36 + 26);
             Widgets.BeginScrollView(area, ref scroll, view);
             try
             {
-                Label(new Rect(5, 0, view.width, 30), "Uncheck a colonist to keep every assignment under manual control.");
-                float y = 38;
-                foreach (var p in workers)
+                float y = 0;
+                foreach (var pawn in workers)
                 {
-                    bool managed = State.Managed(p), before = managed;
-                    Widgets.CheckboxLabeled(new Rect(8, y, view.width * .60f, 30), p.LabelShort + " · " + (WorkAccess.Available(p) ? "Available" : "Currently unavailable"), ref managed);
-                    if (managed != before)
-                    {
-                        State.Excluded.Remove(p.ThingID); if (!managed) State.Excluded.Add(p.ThingID);
-                        foreach (var key in draft.Where(kv => kv.Value.Pawn == p).Select(kv => kv.Key).ToList()) draft.Remove(key);
-                        State.Invalidate();
-                    }
-                    Label(new Rect(view.width * .64f, y + 3, view.width * .35f, 30), State.MainJobs(p) + " main jobs · " + State.Locks.Count(k => k.StartsWith(p.ThingID + "|", StringComparison.Ordinal)) + " locks", Muted);
-                    y += 46;
+                    bool managed = State.Managed(pawn), before = managed;
+                    Widgets.CheckboxLabeled(new Rect(5,y,view.width*.45f,28),pawn.LabelShort + (WorkAccess.Available(pawn)?"":" · unavailable"),ref managed);
+                    if (managed != before) { State.Excluded.Remove(pawn.ThingID); if(!managed)State.Excluded.Add(pawn.ThingID); foreach(var key in draft.Where(kv=>kv.Value.Pawn==pawn).Select(kv=>kv.Key).ToList())draft.Remove(key); State.Invalidate(); }
+                    Label(new Rect(view.width*.48f,y+2,view.width*.25f,25),State.MainJobs(pawn)+" main assignments",Muted);
+                    if(Widgets.ButtonText(new Rect(view.width*.76f,y,view.width*.23f,27),"Assignment locks"))
+                        Find.WindowStack.Add(new FloatMenu(WorkAccess.Works().Where(w=>WorkAccess.Capable(pawn,w)).Select(w=>new FloatMenuOption((State.IsLocked(pawn,w)?"Unlock ":"Lock ")+WorkAccess.Label(w),()=>{State.SetLock(pawn,w,!State.IsLocked(pawn,w));draft.Remove(WorkAccess.Key(pawn,w));})).ToList()));
+                    y += 36;
                 }
             }
             finally { Widgets.EndScrollView(); }
         }
         private void DrawSettings(Rect area)
         {
-            var view = new Rect(0, 0, area.width - 20, 440);
-            Widgets.BeginScrollView(area, ref scroll, view);
+            var view = new Rect(0,0,area.width-20,420);
+            Widgets.BeginScrollView(area,ref scroll,view);
             try
             {
-                var list = new Listing_Standard(); list.Begin(view);
-                bool daily = State.Daily;
-                list.CheckboxLabeled("Reassign enabled staffing rules once per in-game day", ref daily, "This applies saved rules without a preview. It never automatically accepts colony-need recommendations.");
-                if (daily != State.Daily)
+                var list=new Listing_Standard();list.Begin(view);
+                bool daily=State.Daily;
+                list.CheckboxLabeled("Reassign saved rules once per in-game day",ref daily);
+                if(daily!=State.Daily)
                 {
-                    if (daily && Compatibility.AutomaticManager(boundMap) != null) status = "Disable the AutoPriorities timer for this map before enabling mulld daily rules. Manual review/apply remains available.";
-                    else if (daily && !Current.Game.playSettings.useWorkPriorities) status = "Apply a reviewed assignment with numbered priorities enabled before switching on daily automation.";
-                    else { State.Daily = daily; State.NextDailyTick = Find.TickManager.TicksGame + 60000; }
+                    if(daily&&Compatibility.AutomaticManager(boundMap)!=null)status="Disable AutoPriorities' timer on this map before enabling mulld daily rules.";
+                    else if(daily&&!Current.Game.playSettings.useWorkPriorities)status="Enable numbered priorities using the normal Work checkbox first.";
+                    else{State.Daily=daily;State.NextDailyTick=Find.TickManager.TicksGame+60000;}
                 }
-                list.Label("Food reserve target: " + State.FoodTarget.ToString("0.0") + " days");
-                float target = (float)Math.Round(list.Slider(State.FoodTarget, .5f, 10f) * 2f) / 2f;
-                if (Math.Abs(target - State.FoodTarget) > .01f) { State.FoodTarget = target; State.Invalidate(); }
-                list.Label("Maximum main jobs per colonist in staffing plans: " + State.MaxMainJobs);
-                State.MaxMainJobs = (int)Math.Round(list.Slider(State.MaxMainJobs, 1, 10));
-                list.Label("Main jobs are priority 1-2. Firefighting, patient and bed rest are exempt. Locks and existing unmanaged jobs count toward the cap.");
-                list.Gap(12);
-                list.Label("Indicators update every in-game hour while open. Suggestions are estimates: bills, pathing, food restrictions and storage can block work even when staffing looks adequate.");
-                list.Gap(12);
-                list.Label("Temporary boosts restore the previous assignment when the need resolves or the timer expires. Changed, locked and excluded assignments are preserved. Colonists off this map are checked when they return.");
-                list.Gap(12);
-                list.Label("Numbered priorities supported: Off and 1-4. Expanded-priority mods and multiplayer have not been validated. Avoid enabling two automatic work managers on the same colonists.");
-                if (Compatibility.AutomaticManager(boundMap) != null) list.Label("AutoPriorities is running timed assignments on this map. mulld daily rules are paused until its timer is turned off; your other mod's settings are not changed.");
+                list.CheckboxLabeled("Use balanced primary / backup / fallback policy",ref State.BalancedPolicy);
+                list.Label("Main-role budget: "+State.MaxMainJobs+" per pawn (essential overflow stays enabled at priority 3)");
+                State.MaxMainJobs=(int)Math.Round(list.Slider(State.MaxMainJobs,1,10));
+                list.Label("Food reserve target: "+State.FoodTarget.ToString("0.0")+" days");
+                float target=(float)Math.Round(list.Slider(State.FoodTarget,.5f,10f)*2)/2;
+                if(Math.Abs(target-State.FoodTarget)>.01){State.FoodTarget=target;State.Invalidate();}
+                if(list.ButtonText("All colony needs"))Find.WindowStack.Add(new FloatMenu(State.Snapshot().Needs.Select(n=>new FloatMenuOption(n.Label+": "+n.Value,()=>{selected=n.Key;page="Needs";resizePending=true;})).ToList()));
+                if(list.ButtonText("Export staffing rules"))status=Presets.Export(State);
+                if(list.ButtonText("Import staffing rules"))status=Presets.Import(State);
+                list.Label("Locks, exclusions and active boosts are protected. Unknown mod work, hunting and dark study remain manual in the balanced preset. Indicators are estimates; bills, storage and access may block jobs.");
                 list.End();
             }
             finally { Widgets.EndScrollView(); }
         }
-        private void DrawFooter(Rect area)
-        {
-            Widgets.DrawLineHorizontal(area.x, area.y, area.width);
-            Label(new Rect(area.x, area.y + 5, Math.Max(80, area.width - 465), 23), draft.Count + " pending changes · " + State.Boosts.Count + " active boosts");
-            Label(new Rect(area.x, area.y + 30, area.width, 28), status, Muted);
-            float x = area.xMax - 452;
-            if (Widgets.ButtonText(new Rect(x, area.y + 4, 100, 28), "Discard", active: draft.Count > 0)) { draft.Clear(); review = false; status = "Draft discarded; applied work priorities unchanged."; }
-            if (Widgets.ButtonText(new Rect(x + 108, area.y + 4, 108, 28), "Undo apply", active: State.Undo.Count > 0 && draft.Count == 0)) { status = State.UndoLast(); review = false; }
-            if (Widgets.ButtonText(new Rect(x + 224, area.y + 4, 228, 28), review ? "Back to editing" : "Review " + draft.Count + " changes", active: draft.Count > 0))
-            {
-                if (review) review = false;
-                else { reviewPlan = draft.Values.OrderBy(c => c.Pawn.LabelShort).ThenBy(c => c.Work.labelShort).Select(c => c.Copy()).ToList(); review = true; scroll = Vector2.zero; enableNumbered = false; }
-            }
-        }
-        private void DrawReview(Rect area)
-        {
-            float bottom = Current.Game.playSettings.useWorkPriorities ? 64 : 100;
-            var outer = new Rect(area.x, area.y, area.width, Math.Max(30, area.height - bottom));
-            var view = new Rect(0, 0, outer.width - 20, 35 + reviewPlan.Count * 74);
-            Widgets.BeginScrollView(outer, ref scroll, view);
-            try
-            {
-                Label(new Rect(8, 0, view.width - 16, 28), "Review assignments — other work may slow down");
-                float y = 35;
-                foreach (var c in reviewPlan)
-                {
-                    Label(new Rect(8, y, view.width - 16, 25), c.Pawn.LabelShort + " · " + WorkAccess.Label(c.Work) + ": " + WorkAccess.PriorityLabel(c.Before) + " → " + WorkAccess.PriorityLabel(c.After));
-                    string timing = c.NeedKey == null ? "Manual/rule change; stays until edited or recalculated." : "Temporary boost; restores on resolution or at " + ((c.ExpiresAt - Find.TickManager.TicksGame) / 2500f).ToString("0.0") + " remaining in-game hours.";
-                    Label(new Rect(8, y + 25, view.width - 16, 22), c.Reason + " · " + timing, Muted);
-                    string competing = string.Join(", ", WorkAccess.Works().Where(w => w != c.Work && WorkAccess.Capable(c.Pawn, w) && PreviewPriority(c.Pawn, w) > 0 && PreviewPriority(c.Pawn, w) <= c.After).Select(w => w.labelShort));
-                    Label(new Rect(8, y + 47, view.width - 16, 22), string.IsNullOrEmpty(competing) ? "No other equal/higher priority assignments." : "Equal/higher priority work remains: " + competing, Gold);
-                    y += 74;
-                }
-            }
-            finally { Widgets.EndScrollView(); }
-            float by = area.yMax - bottom + 4;
-            if (!Current.Game.playSettings.useWorkPriorities)
-            {
-                Widgets.CheckboxLabeled(new Rect(area.x + 8, by, area.width - 16, 30), "Enable numbered work priorities for this save (all maps)", ref enableNumbered); by += 34;
-            }
-            if (Widgets.ButtonText(new Rect(area.x + 8, by, 230, 30), "Apply reviewed changes", active: Current.Game.playSettings.useWorkPriorities || enableNumbered))
-            {
-                string error = State.Apply(reviewPlan, enableNumbered);
-                if (error == null) { draft.Clear(); review = false; status = "Assignments applied. Indicators improve only as colonists complete work."; }
-                else status = error;
-            }
-        }
 #if MULLD_SMOKE_TESTS
         internal void SmokeView(string tab, WorkTypeDef work = null, bool preview = false)
         {
-            page = tab; expanded = work; scroll = Vector2.zero; review = false;
-            if (preview)
+            Expanded=true;page=tab=="Work"?"Needs":tab;scroll=Vector2.zero;review=false;
+            if(preview)
             {
-                var pawn = State.Workers.First(p => WorkAccess.Capable(p, work) && State.Managed(p) && !State.IsLocked(p, work));
-                int before = pawn.workSettings.GetPriority(work);
-                Stage(new Assignment(pawn, work, before, before == 3 ? 4 : 3, "Smoke review"));
-                reviewPlan = draft.Values.Select(c => c.Copy()).ToList(); review = true;
+                Presets.Balanced(State);StageRules();
+                if(draft.Count==0){var p=State.Workers.First(p=>State.Managed(p)&&WorkAccess.Capable(p,work)&&!State.IsLocked(p,work));int before=p.workSettings.GetPriority(work);Stage(new Assignment(p,work,before,before==3?4:3,"Smoke review"));}
+                BeginReview();
             }
+            resizePending=true;
+        }
+        internal int SmokeDraftCount => draft.Count;
+        internal void SmokeCollapse() { Expanded=false;resizePending=true; }
+        internal string SmokeApply()
+        {
+            string error=State.Apply(draft.Values.Select(c=>c.Copy()).ToList(),true);
+            if(error==null){draft.Clear();review=false;resizePending=true;status="Balanced assignments applied; undo available.";}
+            return error;
         }
 #endif
-    }
-    public sealed class MainButtonWorker_Priorities : MainButtonWorker_ToggleTab
-    {
-        public override void DoButton(Rect rect)
-        {
-            // The base worker capitalizes every label. Preserve the mulld brand.
-            if (Widgets.ButtonText(rect, "mulld Priorities", active: !Disabled)) InterfaceTryActivate();
-            if (Find.MainTabsRoot.OpenTab == def) Widgets.DrawBoxSolid(new Rect(rect.x, rect.y, rect.width, 2), new Color(.82f, .68f, .43f));
-            TooltipHandler.TipRegion(rect, def.description);
-        }
     }
 }

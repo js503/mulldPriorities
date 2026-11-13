@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Patch>
+  <Operation Class="PatchOperationReplace">
+    <xpath>Defs/MainButtonDef[defName="Work"]/tabWindowClass</xpath>
+    <value><tabWindowClass>Mulld.Priorities.MainTabWindow_Priorities</tabWindowClass></value>
+  </Operation>
+</Patch>

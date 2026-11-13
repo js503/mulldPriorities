@@ -9,9 +9,11 @@
     <OutputPath>../Assemblies/</OutputPath>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <GamePath Condition="'$(GamePath)' == ''">C:\Program Files (x86)\Steam\steamapps\common\RimWorld</GamePath>
+    <HarmonyPath Condition="'$(HarmonyPath)' == ''">C:\Program Files (x86)\Steam\steamapps\workshop\content\294100\2009463077\1.7\Assemblies\0Harmony.dll</HarmonyPath>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Assembly-CSharp"><HintPath>$(GamePath)/Assembly-CSharp.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="UnityStubs"><HintPath>$(GamePath)/UnityStubs.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="0Harmony"><HintPath>$(HarmonyPath)</HintPath><Private>false</Private></Reference>
   </ItemGroup>
 </Project>

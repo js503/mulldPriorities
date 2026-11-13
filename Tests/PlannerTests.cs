@@ -49,6 +49,43 @@ public static class PlannerTests
         Check(Planner.CanRestore(2, 2, false), "Unmodified boost restored");
         Check(!Planner.CanRestore(3, 2, false), "External edit preserved");
         Check(!Planner.CanRestore(2, 2, true), "New protection preserved");
+        var ids = new[] { "Cod", "Green", "Abrusa", "Wombat", "Giraffe" };
+        ColonyWork Role(string name, double[] skills, bool essential = false, int priority = 2, int fallback = 4) => new ColonyWork
+        {
+            Id = name, Target = 1, Priority = priority, Backups = 1, BackupPriority = 3, FallbackPriority = fallback, Essential = essential,
+            Candidates = ids.Select((id, i) => new Candidate { Id = id, Score = skills[i] }).ToList()
+        };
+        var colony = new List<ColonyWork> {
+            Role("Doctor", new double[]{0,0,12,0,1}, true, 1),
+            Role("Cook", new double[]{0,1,0,0,12}, true),
+            Role("Grow", new double[]{14,0,0,0,5}, true),
+            Role("Construct", new double[]{0,15,0,0,5}, true),
+            Role("Mine", new double[]{2,3,1,4,0}),
+            Role("Research", new double[]{1,0,3,0,10}),
+            Role("Handle", new double[]{0,0,10,0,0}),
+            new ColonyWork { Id="Haul", Target=5, Priority=4, FallbackPriority=4, GeneralWork=true, Candidates=ids.Select(id=>new Candidate{Id=id}).ToList() }
+        };
+        for (int i=0;i<colony.Count;i++) colony[i].Order=i;
+        var balanced = Planner.AssignColony(colony, 2);
+        Check(balanced["Doctor"]["Abrusa"] == 1, "Balanced: best doctor receives urgent coverage");
+        Check(colony.Where(r=>r.Essential).All(r=>balanced[r.Id].Values.Any(v=>v>0&&v<=2)), "Balanced: every essential role has primary coverage");
+        Check(colony.Take(7).All(r=>balanced[r.Id].Values.Count(v=>v>0&&v<=3)>=2), "Balanced: useful backups retained");
+        Check(balanced.Values.All(values=>values.Values.All(v=>v>0)), "Balanced: capable fallback work is not wiped");
+        Check(ids.All(id=>balanced.Values.Any(v=>v[id] is 1 or 2)), "Balanced: every pawn has a primary role");
+        Check(ids.All(id=>balanced.Values.Count(v=>v[id] is 1 or 2)<=2), "Balanced: primary roles spread within budget");
+        var solo=colony.Select(r=>new ColonyWork {Id=r.Id,Order=r.Order,Target=1,Priority=r.Priority,Backups=1,BackupPriority=3,FallbackPriority=r.FallbackPriority,Essential=r.Essential,GeneralWork=r.GeneralWork,Candidates=new List<Candidate>{new Candidate{Id="solo",Score=5}}}).ToList();
+        balanced=Planner.AssignColony(solo,2);
+        Check(solo.Where(r=>r.Essential).All(r=>balanced[r.Id]["solo"]>0), "Solo: essential work stays covered after cap");
+        Check(balanced.Values.Count(v=>v["solo"] is 1 or 2)<=2, "Solo: excess main duties become support work");
+        colony[1].Candidates[0].Locked=true; colony[1].Candidates[0].Current=0;
+        balanced=Planner.AssignColony(colony,2);
+        Check(balanced["Cook"]["Cod"]==0, "Balanced: locked-off assignments stay off");
+        colony[2].Candidates[0].Eligible=false;
+        balanced=Planner.AssignColony(colony,2);
+        Check(balanced["Grow"]["Cod"]==0, "Balanced: eligibility applies to fallback and backup work");
+        var idle = new[] { new ColonyWork { Id="Haul",Target=3,Priority=4,FallbackPriority=4,GeneralWork=true,Candidates=ids.Take(3).Select(id=>new Candidate{Id=id}).ToList() } };
+        Check(Planner.AssignColony(idle,2)["Haul"].Values.All(v=>v==2), "Balanced: otherwise idle workers receive useful general work");
+        Check(Planner.AssignColony(Array.Empty<ColonyWork>(),2).Count==0, "Balanced: empty colony safe");
         return passed + " policy checks passed.";
     }
 }

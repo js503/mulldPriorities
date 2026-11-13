@@ -4,5 +4,7 @@
   <author>mulld</author>
   <packageId>mulld.priorities</packageId>
   <supportedVersions><li>1.7</li></supportedVersions>
-  <description>Colony needs and work priorities, together. See food reserves, treatment coverage and harvest pressure, then review suggested assignments or edit priorities yourself. Includes skill-based staffing rules, colonist exclusions, assignment locks, temporary boosts, daily reassignment and undo. Automation is off by default. No Harmony dependency.</description>
+  <modDependencies><li><packageId>brrainz.harmony</packageId><displayName>Harmony</displayName><steamWorkshopUrl>steam://url/CommunityFilePage/2009463077</steamWorkshopUrl></li></modDependencies>
+  <loadAfter><li>brrainz.harmony</li></loadAfter>
+  <description>Colony needs and work priorities, together. See food reserves, treatment coverage and harvest pressure, then review suggested assignments or edit priorities yourself. Includes skill-based staffing rules, colonist exclusions, assignment locks, temporary boosts, daily reassignment and undo. Automation is off by default. Requires Harmony. Needs and review are integrated into the vanilla Work tab.</description>
 </ModMetaData>

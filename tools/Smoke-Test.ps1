@@ -25,7 +25,7 @@ if ($CurrentModList) {
     @($mods.ModsConfigData.activeMods.li) | Set-Content -LiteralPath (Join-Path $profile 'requested-mods.txt')
     Get-FileHash -LiteralPath (Join-Path $normalConfig 'ModsConfig.xml') | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $profile 'source-config-hash.json')
 } else {
-    $mods = [xml]'<ModsConfigData><version>1.7.5005</version><activeMods><li>ludeon.rimworld</li><li>mulld.priorities</li></activeMods><knownExpansions /></ModsConfigData>'
+    $mods = [xml]'<ModsConfigData><version>1.7.5005</version><activeMods><li>brrainz.harmony</li><li>ludeon.rimworld</li><li>mulld.priorities</li></activeMods><knownExpansions /></ModsConfigData>'
 }
 $mods.Save((Join-Path $config 'ModsConfig.xml'))
 $prefs = [xml]'<PrefsData><screenWidth>1280</screenWidth><screenHeight>900</screenHeight><fullscreen>False</fullscreen><runInBackground>True</runInBackground><devMode>True</devMode><volumeGame>0</volumeGame><volumeMusic>0</volumeMusic></PrefsData>'

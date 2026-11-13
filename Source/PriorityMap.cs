@@ -15,6 +15,7 @@ namespace Mulld.Priorities
         public List<Assignment> Undo = new List<Assignment>();
         public List<Assignment> UndoBoosts = new List<Assignment>();
         public bool Daily;
+        public bool BalancedPolicy;
         public int NextDailyTick;
         public int MaxMainJobs = 2;
         public float FoodTarget = 2f;
@@ -25,7 +26,7 @@ namespace Mulld.Priorities
         public List<Pawn> Workers => map.mapPawns.FreeColonistsSpawned.Where(p => !p.Dead && p.workSettings != null && p.workSettings.EverWork).OrderBy(p => p.LabelShort).ToList();
         public bool Managed(Pawn pawn) => !Excluded.Contains(pawn.ThingID);
         public bool IsLocked(Pawn pawn, WorkTypeDef work) => Locks.Contains(WorkAccess.Key(pawn, work));
-        public int MainJobs(Pawn pawn) => WorkAccess.Works().Count(w => WorkAccess.Capable(pawn, w) && pawn.workSettings.GetPriority(w) is 1 or 2 && !WorkAccess.Emergency(w));
+        public int MainJobs(Pawn pawn) => WorkAccess.Works().Count(w => WorkAccess.Capable(pawn, w) && pawn.workSettings.GetPriority(w) is 1 or 2 && WorkAccess.MainWork(w));
         public WorkRule Rule(WorkTypeDef work)
         {
             var rule = Rules.Find(r => r.Work == work);
@@ -55,6 +56,7 @@ namespace Mulld.Priorities
         }
         public List<Assignment> Plan()
         {
+            if (BalancedPolicy) return PlanBalanced();
             var assignments = new List<Assignment>();
             var pawns = Workers.Where(p => Managed(p) && WorkAccess.Available(p)).ToList();
             // Main-job caps include unmanaged work and locked/temporarily boosted jobs.
@@ -75,6 +77,37 @@ namespace Mulld.Priorities
                     if (!protect && next != p.workSettings.GetPriority(rule.Work)) assignments.Add(new Assignment(p, rule.Work, p.workSettings.GetPriority(rule.Work), next, "Staffing rule: " + rule.Mode + " " + rule.Amount));
                 }
             }
+            return assignments;
+        }
+        private List<Assignment> PlanBalanced()
+        {
+            var workers = Workers.Where(p => Managed(p) && WorkAccess.Available(p)).ToList();
+            var rules = Rules.Where(r => r.Enabled && r.Work != null).ToList();
+            var managed = rules.Select(r => r.Work).ToHashSet();
+            var works = WorkAccess.Works();
+            var loads = workers.ToDictionary(p => p.ThingID, p => works.Count(w => WorkAccess.Capable(p, w) && WorkAccess.MainWork(w) && p.workSettings.GetPriority(w) is 1 or 2 && (!managed.Contains(w) || IsLocked(p, w) || Boosts.Any(b => b.Key == WorkAccess.Key(p, w)))));
+            var inputs = rules.Select(rule =>
+            {
+                var candidates = workers.Where(p => WorkAccess.Capable(p, rule.Work)).Select(p => new Candidate
+                {
+                    Id = p.ThingID, Score = WorkAccess.Score(p, rule.Work, rule.FavorPassion), MainJobs = loads[p.ThingID], Current = p.workSettings.GetPriority(rule.Work),
+                    Eligible = (!rule.AdultsOnly || WorkAccess.Adult(p)) && WorkAccess.Skill(p, rule.Work) >= rule.MinSkill,
+                    Locked = IsLocked(p, rule.Work) || Boosts.Any(b => b.Key == WorkAccess.Key(p, rule.Work))
+                }).ToList();
+                return new ColonyWork { Id = rule.Work.defName, Candidates = candidates, Target = Planner.StaffingTarget(rule.Mode, rule.Amount, candidates.Count(c => c.Eligible)), Priority = rule.Priority,
+                    Backups = rule.Mode == "Off" ? 0 : rule.Backups, BackupPriority = rule.BackupPriority, FallbackPriority = rule.Mode == "Off" ? 0 : rule.FallbackPriority,
+                    Emergency = WorkAccess.Emergency(rule.Work), Essential = rule.Essential, CountsAsMain = WorkAccess.MainWork(rule.Work), GeneralWork = rule.Work.defName is "Hauling" or "Cleaning", Order = -rule.Work.naturalPriority };
+            }).ToList();
+            var planned = Planner.AssignColony(inputs, MaxMainJobs);
+            var assignments = new List<Assignment>();
+            foreach (var rule in rules)
+                foreach (var pawn in workers.Where(p => WorkAccess.Capable(p, rule.Work)))
+                {
+                    int before = pawn.workSettings.GetPriority(rule.Work), after = planned[rule.Work.defName][pawn.ThingID];
+                    if (after == before || IsLocked(pawn, rule.Work) || Boosts.Any(b => b.Key == WorkAccess.Key(pawn, rule.Work))) continue;
+                    string role = after == 0 ? "disabled by rule" : after <= 2 ? "primary role" : after == rule.BackupPriority ? "backup/support" : "fallback work";
+                    assignments.Add(new Assignment(pawn, rule.Work, before, after, "Staffing rule: balanced " + role));
+                }
             return assignments;
         }
         public string Validate(IEnumerable<Assignment> changes)
@@ -200,6 +233,7 @@ namespace Mulld.Priorities
             Scribe_Collections.Look(ref Undo, "mulldUndo", LookMode.Deep);
             Scribe_Collections.Look(ref UndoBoosts, "mulldUndoBoosts", LookMode.Deep);
             Scribe_Values.Look(ref Daily, "mulldDaily");
+            Scribe_Values.Look(ref BalancedPolicy, "mulldBalancedPolicy");
             Scribe_Values.Look(ref NextDailyTick, "mulldNextDailyTick");
             Scribe_Values.Look(ref MaxMainJobs, "mulldMaxMainJobs", 2);
             Scribe_Values.Look(ref FoodTarget, "mulldFoodTarget", 2f);
@@ -213,7 +247,7 @@ namespace Mulld.Priorities
                 Undo.RemoveAll(b => b == null || b.Pawn == null || b.Work == null);
                 UndoBoosts.RemoveAll(b => b == null || b.Pawn == null || b.Work == null);
                 MaxMainJobs = Math.Clamp(MaxMainJobs, 1, 10); FoodTarget = Math.Clamp(FoodTarget, 0.5f, 10f);
-                foreach (var rule in Rules) { rule.Priority = Math.Clamp(rule.Priority, 1, 4); rule.Amount = Math.Max(0, rule.Amount); rule.MinSkill = Math.Clamp(rule.MinSkill, 0, 20); if (!new[] { "Count", "Percent", "Everyone", "Off" }.Contains(rule.Mode)) rule.Mode = "Count"; }
+                foreach (var rule in Rules) { rule.Priority = Math.Clamp(rule.Priority, 1, 4); rule.Amount = Math.Max(0, rule.Amount); rule.MinSkill = Math.Clamp(rule.MinSkill, 0, 20); rule.Backups = Math.Max(0, rule.Backups); rule.BackupPriority = Math.Clamp(rule.BackupPriority, 3, 4); rule.FallbackPriority = Math.Clamp(rule.FallbackPriority, 0, 4); if (!new[] { "Count", "Percent", "Everyone", "Off" }.Contains(rule.Mode)) rule.Mode = "Count"; }
             }
         }
     }

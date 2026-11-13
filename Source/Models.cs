@@ -15,6 +15,10 @@ namespace Mulld.Priorities
         public int MinSkill;
         public bool FavorPassion = true;
         public bool AdultsOnly;
+        public int Backups;
+        public int BackupPriority = 3;
+        public int FallbackPriority;
+        public bool Essential;
         public void ExposeData()
         {
             Scribe_Defs.Look(ref Work, "work");
@@ -25,6 +29,10 @@ namespace Mulld.Priorities
             Scribe_Values.Look(ref MinSkill, "minSkill");
             Scribe_Values.Look(ref FavorPassion, "favorPassion", true);
             Scribe_Values.Look(ref AdultsOnly, "adultsOnly");
+            Scribe_Values.Look(ref Backups, "backups");
+            Scribe_Values.Look(ref BackupPriority, "backupPriority", 3);
+            Scribe_Values.Look(ref FallbackPriority, "fallbackPriority");
+            Scribe_Values.Look(ref Essential, "essential");
         }
     }
 
@@ -80,6 +88,7 @@ namespace Mulld.Priorities
         public static float Score(Pawn p, WorkTypeDef w, bool passion) => Skill(p, w) + (passion && p.skills != null ? (int)p.skills.MaxPassionOfRelevantSkillsFor(w) * 3f : 0f);
         public static bool Dangerous(WorkTypeDef w) => w.defName == "Hunting" || w.defName == "Handling" || w.defName == "Firefighter";
         public static bool Emergency(WorkTypeDef w) => w.defName == "Firefighter" || w.defName == "Patient" || w.defName == "PatientBedRest";
+        public static bool MainWork(WorkTypeDef w) => !Emergency(w) && w.defName != "BasicWorker" && w.defName != "HaulingUrgent";
         public static string Label(WorkTypeDef w) => (w.labelShort ?? w.label ?? w.defName).CapitalizeFirst();
         public static List<WorkTypeDef> Works() => DefDatabase<WorkTypeDef>.AllDefsListForReading.FindAll(w => w.visible && w.VisibleCurrently);
         public static string PriorityLabel(int value) => value == 0 ? "Off" : value.ToString();
