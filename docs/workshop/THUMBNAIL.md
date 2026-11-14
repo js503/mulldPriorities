@@ -1,5 +1,7 @@
-# Thumbnail source
+# Workshop thumbnail
 
-Generated with the built-in imagegen tool; resized to 512 × 512 for `About/Preview.png` (under 1 MB).
+Selected concept: **3 — Work grid**.
 
-Prompt: Square Steam Workshop thumbnail for a RimWorld colony work-priority mod. Exact text: lowercase “mulld”, followed by “Priorities” with capital P. Dark charcoal and muted gold, three staggered priority tiles numbered 1, 2, 3, a gold checkmark and subtle illustrated colony backdrop. Bold readable type, ample margins, no other text, official logo or watermark.
+Built-in imagegen output, resized to 512 × 512 for `About/Preview.png`; under 1 MB.
+
+Prompt: Square Steam Workshop thumbnail matching the original dark charcoal, warm cream and gold brand, with a chamfered gold border. Exact text: lowercase “mulld”, followed by “Priorities” with capital P. Dominant typography above a stylized compact work-priority matrix, gold numbers 1, 2, 3, abstract pawn silhouettes and a checkmark. Subtle colony backdrop, readable at 200px; no extra words, official logo or watermark.
