@@ -1,8 +1,40 @@
-obj/
+# Build and release output
 bin/
+obj/
 artifacts/
+*.zip
+*.pdb
+
+# Local editor / machine settings
+.vs/
+.vscode/
+.idea/
 *.user
+*.suo
+Local.props
+.env
+.env.*
+!.env.example
+
+# Temporary files and runtime data
 *.log
 *.tmp
-.vs/
-Local.props
+*.bak
+*.rws
+.DS_Store
+Thumbs.db
+
+# Design explorations (README screenshots are intentionally tracked)
+mocks/
+mockups/
+visualizations/
+**/*-mocks.html
+**/*-mock.html
+
+# Generated test captures; retain test sources and curated Markdown reports
+Tests/*-results.txt
+Tests/*-mods.txt
+Tests/Performance/*.json
+Tests/Performance/*.txt
+Tests/ProposedNumbers/*.json
+Tests/ProposedNumbers/*.txt
