@@ -4,5 +4,5 @@ using System.Reflection;
 [assembly: AssemblyDescription("Colony needs and reviewable work assignments for RimWorld 1.7")]
 [assembly: AssemblyCompany("mulld")]
 [assembly: AssemblyProduct("mulld Priorities")]
-[assembly: AssemblyVersion("0.4.0.0")]
-[assembly: AssemblyFileVersion("0.4.0.0")]
+[assembly: AssemblyVersion("0.4.1.0")]
+[assembly: AssemblyFileVersion("0.4.1.0")]

@@ -11,6 +11,8 @@ namespace Mulld.Priorities
         public static MulldSettings Settings { get; private set; }
         public MulldMod(ModContentPack content) : base(content)
         {
+            try { SettingsMigration.Migrate(GenFilePaths.ConfigFolderPath); }
+            catch (System.Exception e) { Log.Warning("[mulld Priorities] Could not migrate settings: " + e.Message); }
             Instance = this; Settings = GetSettings<MulldSettings>();
             PerformanceMetrics.Enabled = Settings.PerformanceDiagnostics;
             new Harmony("mulld.priorities").PatchAll(typeof(MulldMod).Assembly);

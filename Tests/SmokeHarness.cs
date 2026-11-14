@@ -41,6 +41,12 @@ namespace Mulld.Priorities
                     if (state.Workers.Count < 1 || Find.TickManager == null) return;
                     phase = 1; oldMap = state.map;
                     File.WriteAllText(Results, "mulld Priorities in-game smoke test" + Environment.NewLine);
+                    string legacySettings=Path.Combine(GenFilePaths.ConfigFolderPath,"Mod_muldPriorities_MulldMod.xml");
+                    if(File.Exists(legacySettings))
+                    {
+                        bool expected=(bool?)System.Xml.Linq.XElement.Load(legacySettings).Descendants("performanceDiagnostics").FirstOrDefault()??false;
+                        Check(File.Exists(Path.Combine(GenFilePaths.ConfigFolderPath,"Mod_mulldPriorities_MulldMod.xml"))&&MulldMod.Settings.PerformanceDiagnostics==expected,"Renamed mod folder preserves legacy Mod Settings on startup");
+                    }
                     File.WriteAllText(Path.Combine(GenFilePaths.SaveDataFolderPath, "loaded-mods.txt"), string.Join(Environment.NewLine, LoadedModManager.RunningMods.Select(m => m.PackageId + " | " + m.Name)));
                     if (!GenCommandLine.CommandLineArgPassed("mulldloadtest")) Check(!state.Daily && state.Boosts.Count == 0, "Automation starts disabled");
                     else Check(state != null, "Existing colony map gains the integrated Work panel");

@@ -1,4 +1,4 @@
-param([string]$Owner = 'js503', [string]$Repository = 'muldPriorities')
+param([string]$Owner = 'js503', [string]$Repository = 'mulldPriorities')
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path $PSScriptRoot -Parent
 if ($Owner -notmatch '^[A-Za-z0-9-]+$' -or $Repository -notmatch '^[A-Za-z0-9_.-]+$') { throw 'Invalid GitHub owner or repository name.' }

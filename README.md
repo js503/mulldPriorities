@@ -1,95 +1,101 @@
 # mulld Priorities
 
-Colony needs and work priorities together inside RimWorld 1.7's **Work** tab.
+**Colony needs, work rules, and reviewable priority changes—all inside RimWorld's Work tab.**
 
-## Use
+`mulldPriorities` is a mod for **RimWorld 1.7 / Waylith**. See what your colony needs, choose how work should be staffed, and preview the proposed assignments before applying them.
 
-1. Enable Harmony and **mulld Priorities**, then restart RimWorld.
-2. Open **Work**. The segmented **mulld Priorities / chevron** control expands or collapses the extension above the native grid.
-3. Use the centered preset name or its separate chevron to choose a preset. **Rules**, **Colonists** and **Settings** stay below the always-visible colony KPIs.
-4. Click the **eye** to **Preview Changes**. Gold-outlined grid cells show the proposed number at full size; click one to see its current → proposed value in the review row. Other assignments remain current.
-5. **Apply N Changes** approves the draft. Preview, preset selection and preset saving never apply work assignments themselves.
+**Manual approval by default. Daily automation and performance diagnostics are opt-in.**
 
-The **disk** opens **Save Rules As**. Enter a custom name; existing names require an explicit, compact overwrite confirmation. Presets include rules, the primary-job limit and policy. They do not contain colonist exclusions, locks, temporary boosts, food targets or the daily-automation switch. A changed rule invalidates the draft and marks the current preset with `*`.
+![The mulld Priorities Work tab, with colony needs, preset controls and proposed priorities highlighted in gold](docs/screenshots/work-preview.png)
 
-When applying from checkbox mode, undo preserves the stored numbered assignments revealed by the switch. Discard clears the draft. Undo reverses the last applied batch when its assignments have not since changed or become protected. If numbered priorities are disabled, review explicitly offers to enable them for the save across all maps.
+## What it does
 
-Automation starts off. Existing saved custom rules keep their previous behavior until you load a preset or explicitly enable the balanced policy.
+- **Needs first:** food runway, care coverage and harvest pressure stay visible above the work grid.
+- **Useful assignments:** primary workers, capable backups and spare-time work, with essential roles considered first.
+- **Readable review:** changed cells show the proposed number at full size. Select a gold cell to inspect its current → proposed value.
+- **Named presets:** start with Balanced, Clean, Harvest or Haul, then save your own rules. Existing names can be overwritten after confirmation.
+- **Player control:** exclusions, assignment locks, temporary need boosts, draft discard and protected undo.
+- **Native integration:** the original Work table and modded work columns remain available. Collapse the extension using the segmented control above the grid.
 
-## Balanced assignments
+## Requirements
 
-Balanced plans allocate skilled primary workers while distributing their main-job load. Doctoring, cooking, growing and construction get coverage first. Firefighting, patient care and bed rest remain priority 1 for capable managed colonists. Basic tasks and urgent hauling do not consume a specialist's main-role allowance.
+| Requirement | Supported configuration |
+| --- | --- |
+| RimWorld | 1.7 / Waylith; validated on 1.7.5005 |
+| Harmony | Required; load before mulld Priorities |
+| Priority scale | Off / 1 / 2 / 3 / 4 |
 
-Most productive roles receive a separate backup at priority 3 and capable fallback workers at 4. When the main-role cap is full, essential coverage remains enabled as support work. Available managed workers without a primary receive useful hauling or cleaning work where permitted. Small colonies may need essential support jobs beyond their primary-role limit.
+## Install
 
-Hunting, dark study and unfamiliar mod work retain manual assignments. Locks, exclusions, incapabilities, age restrictions and active boosts remain protected. Temporarily unavailable pawns retain their assignments. Coverage means enabled workers, not guaranteed execution: bills, fuel, allowed areas, access, designations and hazards still matter.
+1. Put the mod in `RimWorld/Mods/mulldPriorities`. That folder should contain `About`, `Assemblies`, `Defs`, `Patches` and `Textures`.
+2. Enable **Harmony** and **mulld Priorities** in the Mods menu.
+3. Restart RimWorld and open **Work** on a colony map.
 
-**Rules** controls primary counts, priorities, backups, fallback work, minimum skill, age and passion weighting. **Colonists** controls exclusions and assignment locks. **Settings** controls targets, primary-job limits, the staffing policy, import/export and optional daily assignment.
+Existing work assignments stay unchanged when the mod is enabled. The package ID remains `mulld.priorities` so existing saves retain their settings. Older local installations using the misspelled folder name are migrated by the installer; do not keep two copies enabled.
 
-Daily rules run every 60,000 game ticks and do not automatically accept need suggestions. If AutoPriorities' per-map Run on timer setting is enabled, mulld pauses daily assignments. Manual review/apply remains available. mulld never changes that mod's settings.
+## Configure → preview → apply
 
-## Needs
+1. **Choose a preset** using its centered name or the adjacent chevron.
+2. **Adjust Rules** as needed. The Colonists tab controls exclusions and locks; Settings contains targets, primary-job limits and optional daily assignment.
+3. Click the **eye** to **Preview Changes**. Gold outlines mark changed cells; their numbers are proposed priorities.
+4. Select a changed cell to see its current and proposed values in the review row.
+5. Click **Apply N Changes**. Use **Discard Changes** to clear the draft, or **Undo Last Apply** to restore eligible assignments from the last batch.
 
-- **Food runway:** known, unforbidden prepared nutrition divided by daily colonist demand; raw ingredients are reported separately.
-- **Care coverage:** player-tended patients versus available assigned doctors who are not patients themselves.
-- **Harvest pressure:** harvestable sown plants, including dying or currently freezing plants.
-- **Hauling backlog:** potential-hauling entries and change since the last sample; these are not guaranteed executable jobs.
-- **Critical coverage:** firefighting, doctoring or cooking without an available assigned worker.
-- **Competing commitments:** workers exceeding the configured primary-role limit; this is assignment count, not measured utilization.
+If numbered priorities are disabled, applying requires explicit consent to enable them for the save. Drafts are checked again before application so later edits, protections and unavailable colonists are not silently overwritten.
 
-Need boosts last at most one day, or half a day for care, and expire sooner if their condition resolves. Restoration preserves subsequent player/mod edits, locks and exclusions. Settings, rules, boosts, exclusions, locks and undo history persist per map.
+## Presets and custom rules
 
-Named presets live in `mulldPriorities-presets.xml` in the current save profile's Config folder and can be loaded across colonies in that profile. Names compare without case and are limited to 40 characters. The library loads on demand and writes only on Save/Overwrite, using an atomic file replacement. A malformed library is not silently overwritten; absent mod jobs remain stored and are skipped when loading rules.
+| Preset | Behavior |
+| --- | --- |
+| **Balanced** | Distributes skilled primary work, covers essentials first, and retains backup and spare-time assignments. |
+| **Clean** | Cleaning at priority 1 for every available, eligible managed colonist. |
+| **Harvest** | Growing at priority 1 for every available, eligible managed colonist. |
+| **Haul** | Hauling at priority 1 for every available, eligible managed colonist. |
 
-Built-ins: **Balanced**, **Clean**, **Harvest** and **Haul**. Focus presets assign their named job at priority 1 to every available eligible managed colonist, bypassing the primary-job limit for that job. Incapabilities, age/skill gates, locks, exclusions and active boosts still apply. Focus stays in the rules until changed; other work may wait. **Factory defaults…** loads original built-in rules without deleting a saved override. Preview and apply afterward, or save again to replace the override.
+Focus jobs can exceed the primary-job limit, while locks, exclusions, incapabilities and active boosts remain protected. Focus rules stay active until changed, so other work may wait.
 
-Single-preset export/import still uses `mulldPriorities-preset.xml`. Format 3 adds the primary-job limit and focus flag; formats 1 and 2 remain readable. Import validates before replacing rules and never applies priorities.
+Click the **disk** to **Save Rules As**. Give the rule set a custom name, or confirm overwrite to replace an existing preset. Built-in names can have local overrides; **Factory defaults…** still provides the original rules.
 
-## Build and install
+Saving and loading presets changes rules, not live work assignments. Presets are shared across colonies in the same save profile and exclude colonist locks, exclusions, temporary boosts, food targets and the daily-automation switch.
 
-Requires installed RimWorld 1.7 / Waylith, Harmony, and PowerShell 7.6+ / .NET 10. No network restore is needed; Roslyn ships with PowerShell.
+<details>
+<summary>See custom preset saving and overwrite confirmation</summary>
 
-```powershell
-./tools/Build.ps1
-./tools/Test.ps1
-./tools/Install.ps1
-./tools/Package.ps1
-```
+![Save Rules As dialog with a named preset field](docs/screenshots/save-preset.png)
 
-Set Build's `-GamePath` and `-HarmonyPath` if installations differ. Alternatively use the .NET 10 SDK and Source/Mulld.Priorities.csproj with those properties. Referenced game/Harmony assemblies are not redistributed.
+![Compact confirmation before overwriting an existing preset](docs/screenshots/overwrite-preset.png)
 
-Install copies About, Defs, Patches, Textures and Assemblies to RimWorld/Mods/muldPriorities. The local folder is deliberately named **muldPriorities**; player-facing branding is **mulld Priorities**.
+</details>
 
-## Validation
+## Performance
 
-Policy tests cover distribution, primary limits, essential support, backups, fallbacks and protection rules. The diagnostic build tests actual game assignments, save/reload, storage food counting, other-manager overlap and the integrated interface.
+Diagnostics are **off by default**. Enable them under **Options → Mod Settings → mulld Priorities** to inspect operation counts, average/worst elapsed time and managed allocation bytes. Counters have fixed storage; there is no background sampler or growing history.
 
-```powershell
-./tools/Build.ps1 -WithSmokeTests
-./tools/Install.ps1
-./tools/Smoke-Test.ps1 -CurrentModList -ProfileName integration-check -SavePath 'C:\Path\To\Colony.rws'
-```
+The 0.4.0 benchmark used **100 spawned colonists, 39,747 map things, 4,001 haulables, 2,000 ready crops and 99 loaded mod entries**:
 
-Tests use a disposable profile and copied save, then exit. Rebuild without `-WithSmokeTests` and reinstall afterward. See Tests/Audit.md, Tests/Integration.md and Tests/Compatibility.md for results and limits.
+| Measurement | Result |
+| --- | ---: |
+| Priority planning | **1.43 ms median**, 64 warmed samples |
+| Review extension drawing | **0.15 ms average**, 120 Repaint samples |
 
-Targets standard Off/1/2/3/4 priorities. Native work columns are retained, including mod columns. Current-map free colonists are managed; slaves and prisoners may count as patients. Multiplayer, expanded priority scales and every race/work-manager combination have not been validated. English interface; independent implementation, with no AutoPriorities code or assets copied.
+These are paused-simulation operation measurements, not overall FPS/TPS improvements or per-mod CPU usage. Native work-table drawing is excluded from the extension measurement. [Read the test methodology and results](Tests/ProposedNumbers.md).
 
-## GitHub publication
+## Compatibility and limits
 
-The configured destination is js503/muldPriorities. Once the official GitHub CLI is installed and authenticated with `gh auth login`, run `./tools/Publish-GitHub.ps1`. It creates a private repository if absent, pushes committed history to main without force, and configures upstream tracking. It refuses a different owner, origin or public destination. Credentials are never stored in the repository.
+- Validated with the tested **99-entry mod configuration**, including assignment paths for **26 visible work types**.
+- AutoPriorities' active per-map timer pauses mulld's daily assignment. Manual preview/apply stays available; mulld does not change the other mod's settings.
+- Hunting, dark study and unfamiliar mod work remain manual in the built-in presets.
+- Needs indicators estimate staffing pressure. Bills, fuel, tools, areas, storage and access can still prevent jobs from running.
+- Multiplayer, expanded priority scales and every race/work-manager combination are not validated.
 
-## Performance diagnostics
+The mod is an independent implementation; no AutoPriorities code or assets are included.
 
-Open Options → Mod Settings → mulld Priorities and enable **Performance diagnostics**. It is off by default and persists globally. The panel shows calls, average/worst milliseconds and average/worst managed KiB allocated for needs scans, planning, validation, apply, automation and the mulld panel's Repaint. Cached needs reads are counted separately. Reset clears all counters; disabling stops recording immediately.
+## Development
 
-Counters use fixed storage and stack/value scopes. Disabled instrumentation does not query timestamps or allocation counters and allocates zero bytes after initialization. There is no sampling thread, growing history or continuous logging. The display formats values at most once per second while open. Nested operation times overlap; allocations are bytes created on the calling thread, not retained RAM or a per-mod CPU percentage.
+The repository, local mod folder and release-package prefix are **`mulldPriorities`**. The in-game name is **mulld Priorities**.
 
-See Tests/Performance.md for the reproducible 100-colonist benchmark, limitations and before/after measurements. Benchmark generation lives only in diagnostic builds. Use an isolated runtime when your normal game is running:
+Build scripts, isolated testing instructions, diagnostics details and preset formats are documented in [the development guide](docs/DEVELOPMENT.md). Game and Harmony binaries are referenced locally and are not redistributed.
 
-```powershell
-./tools/Build.ps1 -WithSmokeTests
-./tools/New-TestRuntime.ps1
-./tools/Smoke-Test.ps1 -GamePath ./artifacts/test-runtime -CurrentModList -Benchmark -ProfileName benchmark -SavePath 'C:\Path\To\Colony.rws'
-```
-
-The benchmark creates a 100-colonist fixture under its disposable profile, warms the operations, measures 64 samples with diagnostics off/on and captures 120 panel repaints per view. It disables tiered JIT only for that benchmark child process. It never changes your normal game settings. Rebuild the release without diagnostics harnesses before installing for play.
+- [Changelog](CHANGELOG.md)
+- [Current functional and compatibility results](Tests/ProposedNumbers.md)
+- [Earlier optimization benchmark](Tests/Performance.md)

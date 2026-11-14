@@ -24,7 +24,7 @@ Five-pawn assertions are in audit-colony-results.txt. Single-pawn assertions are
 
 ## GitHub
 
-Local origin is configured for https://github.com/js503/muldPriorities.git. The connected GitHub account is js503, but the connector has no repository-create operation, the local Git credential helper has no noninteractive GitHub login, and Windows Firefox browser access is blocked by the tool's URL-policy support. No remote publication is claimed. A Git bundle preserves the complete local history for transfer.
+Local origin is configured for https://github.com/js503/mulldPriorities.git. The connected GitHub account is js503, but the connector has no repository-create operation, the local Git credential helper has no noninteractive GitHub login, and Windows Firefox browser access is blocked by the tool's URL-policy support. No remote publication is claimed. A Git bundle preserves the complete local history for transfer.
 
 
 ## Final results
@@ -34,5 +34,5 @@ Local origin is configured for https://github.com/js503/muldPriorities.git. The 
 - Both profiles loaded all 97 requested mod entries and exercised all 25 visible work types; no work type was skipped for missing eligible workers.
 - Both final profiles completed with no managed game errors. Existing external native ReShade/shutdown messages remain.
 - Original ModsConfig.xml, Test.rws and Autosave-1.rws hashes match pre-test values.
-- Release version 0.2.1 is rebuilt without diagnostic types, installed in RimWorld/Mods/muldPriorities and checked against the local DLL hash.
+- Release version 0.2.1 is rebuilt without diagnostic types, installed in RimWorld/Mods/mulldPriorities and checked against the local DLL hash.
 - GitHub publishing helper syntax validated locally. Its network publication path remains unexecuted because authentication/repository creation is unavailable in this session.

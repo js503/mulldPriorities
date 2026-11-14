@@ -2,10 +2,18 @@ param([string]$GamePath = 'C:\Program Files (x86)\Steam\steamapps\common\RimWorl
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path $PSScriptRoot -Parent
 $modsRoot = [IO.Path]::GetFullPath((Join-Path $GamePath 'Mods'))
-$destination = [IO.Path]::GetFullPath((Join-Path $modsRoot 'muldPriorities'))
+$destination = [IO.Path]::GetFullPath((Join-Path $modsRoot 'mulldPriorities'))
 if (!(Test-Path -LiteralPath (Join-Path $GamePath 'Assembly-CSharp.dll'))) { throw 'GamePath is not a RimWorld installation.' }
 if (!$destination.StartsWith($modsRoot + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) { throw 'Destination must be inside the game Mods folder.' }
 if (!(Test-Path -LiteralPath (Join-Path $repo 'Assemblies/Mulld.Priorities.dll'))) { throw 'Build the assembly first.' }
+$legacy = [IO.Path]::GetFullPath((Join-Path $modsRoot 'muldPriorities'))
+if (!$legacy.StartsWith($modsRoot + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) { throw 'Legacy destination must be inside Mods.' }
+if (Test-Path -LiteralPath $legacy) {
+    $legacyMetadata = [xml](Get-Content -LiteralPath (Join-Path $legacy 'About/About.xml') -Raw)
+    if ($legacyMetadata.ModMetaData.packageId -ne 'mulld.priorities') { throw 'Refusing to rename a different legacy mod.' }
+    if (Test-Path -LiteralPath $destination) { throw 'Both legacy and canonical mod folders exist; refusing a duplicate installation.' }
+    Move-Item -LiteralPath $legacy -Destination $destination
+}
 $existing = Join-Path $destination 'About/About.xml'
 if (Test-Path -LiteralPath $existing) {
     $metadata = [xml](Get-Content -LiteralPath $existing -Raw)

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.1 — 2026-11-14
+
+- Standardize the repository, installed folder, release packages and GitHub destination as mulldPriorities.
+- Migrate the legacy installed folder and preserve its Mod Settings under the corrected folder name.
+- Rewrite the README with real in-game screenshots and move detailed developer instructions into docs/DEVELOPMENT.md.
+
+
 ## 0.4.0 — 2026-11-13
 
 - Implement the selected Clear Bands / Preset with rules layout: KPIs remain above Rules, Colonists and Settings; review controls sit directly above the native Work grid.

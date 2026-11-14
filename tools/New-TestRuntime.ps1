@@ -15,7 +15,7 @@ Get-ChildItem -LiteralPath $GamePath -Directory | Where-Object Name -ne 'Mods' |
     if (!(Test-Path -LiteralPath $target)) { New-Item -ItemType Junction -Path $target -Target $_.FullName | Out-Null }
 }
 $mods = Join-Path $runtime 'Mods'; New-Item -ItemType Directory -Path $mods -Force | Out-Null
-Get-ChildItem -LiteralPath (Join-Path $GamePath 'Mods') -Directory | Where-Object Name -ne 'muldPriorities' | ForEach-Object {
+Get-ChildItem -LiteralPath (Join-Path $GamePath 'Mods') -Directory | Where-Object Name -NotIn @('mulldPriorities','muldPriorities') | ForEach-Object {
     $target = Join-Path $mods $_.Name
     if (!(Test-Path -LiteralPath $target)) { New-Item -ItemType Junction -Path $target -Target $_.FullName | Out-Null }
 }
