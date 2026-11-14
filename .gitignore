@@ -38,3 +38,6 @@ Tests/Performance/*.json
 Tests/Performance/*.txt
 Tests/ProposedNumbers/*.json
 Tests/ProposedNumbers/*.txt
+
+# Generated Workshop layout preview
+docs/workshop/description-preview.png
