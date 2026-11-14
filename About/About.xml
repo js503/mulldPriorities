@@ -1,10 +1,26 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <ModMetaData>
   <name>mulld Priorities</name>
   <author>mulld</author>
   <packageId>mulld.priorities</packageId>
-  <supportedVersions><li>1.7</li></supportedVersions>
-  <modDependencies><li><packageId>brrainz.harmony</packageId><displayName>Harmony</displayName><steamWorkshopUrl>steam://url/CommunityFilePage/2009463077</steamWorkshopUrl></li></modDependencies>
-  <loadAfter><li>brrainz.harmony</li></loadAfter>
-  <description>Colony needs and work priorities, together. See food reserves, treatment coverage and harvest pressure, then review suggested assignments or edit priorities yourself. Includes skill-based staffing rules, colonist exclusions, assignment locks, temporary boosts, daily reassignment and undo. Automation is off by default. Requires Harmony. Needs and review are integrated into the vanilla Work tab.</description>
+  <supportedVersions>
+    <li>1.7</li>
+  </supportedVersions>
+  <modDependencies>
+    <li>
+      <packageId>brrainz.harmony</packageId>
+      <displayName>Harmony</displayName>
+      <steamWorkshopUrl>steam://url/CommunityFilePage/2009463077</steamWorkshopUrl>
+    </li>
+  </modDependencies>
+  <loadAfter>
+    <li>brrainz.harmony</li>
+  </loadAfter>
+  <description>See what your colony needs. Give your pawns useful work. Review before applying.
+
+mulld Priorities brings colony needs and work rules into the Work tab. Track food, care and harvest pressure; choose Balanced, Clean, Harvest or Haul; and preview changes directly in the grid. Includes custom presets, backups, locks, exclusions and undo.
+
+Manual approval by default. Optional daily automation and diagnostics are off by default.
+
+Requires RimWorld 1.7 and Harmony. Standard Off / 1–4 priorities.</description>
 </ModMetaData>

@@ -1,0 +1,15 @@
+See what your colony needs. Give your pawns useful work. Review before applying.
+
+mulld Priorities brings colony needs and work rules into RimWorld’s Work tab.
+
+• Track food runway, care coverage and harvest pressure.
+• Assign useful primary work, backups and spare-time jobs.
+• Choose Balanced, Clean, Harvest or Haul—or save your own preset.
+• Preview proposed numbers in the work grid before applying.
+• Keep control with exclusions, locks, discard and undo.
+
+Manual approval by default. Daily automation and performance diagnostics are optional and off by default.
+
+Requires RimWorld 1.7 and Harmony. Uses standard Off / 1–4 priorities.
+
+Friends-only testing build. Feedback welcome.
