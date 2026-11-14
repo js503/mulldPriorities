@@ -2,19 +2,19 @@
 
 [h2]Colony needs at a glance[/h2]
 See food runway, care coverage and harvest pressure.
-[img]{{NEEDS_IMAGE_URL}}[/img]
+[img]https://raw.githubusercontent.com/js503/mulldPriorities/main/docs/workshop/images/needs.png[/img]
 
 [h2]Presets and custom rules[/h2]
 Choose Balanced, Clean, Harvest or Haul. Save your own.
-[img]{{PRESETS_IMAGE_URL}}[/img]
+[img]https://raw.githubusercontent.com/js503/mulldPriorities/main/docs/workshop/images/presets.png[/img]
 
 [h2]Preview before applying[/h2]
 See proposed numbers in the grid. Apply when you are ready.
-[img]{{PREVIEW_IMAGE_URL}}[/img]
+[img]https://raw.githubusercontent.com/js503/mulldPriorities/main/docs/workshop/images/preview.png[/img]
 
 [h2]Keep control[/h2]
 Exclude colonists, lock assignments, discard changes or undo.
-[img]{{CONTROL_IMAGE_URL}}[/img]
+[img]https://raw.githubusercontent.com/js503/mulldPriorities/main/docs/workshop/images/control.png[/img]
 
 Manual approval by default. Automation and diagnostics are optional and off by default.
 
@@ -22,4 +22,6 @@ Requires RimWorld 1.7 and Harmony. Standard Off / 1–4 priorities.
 
 [url=https://github.com/js503/mulldPriorities]GitHub — source code and issues[/url]
 
-Friends-only testing build. Feedback welcome.
+Feedback welcome. Report issues on GitHub.
+
+
