@@ -1,0 +1,332 @@
+mulld Priorities in-game smoke test
+PASS Existing colony map gains the integrated Work panel
+PASS Performance diagnostics default off
+PASS Disabled diagnostics collect no scan or plan samples
+PASS Enabled diagnostics measure real scans plans and cache hits
+PASS Diagnostics toggle persists in the isolated Mod Settings file
+PASS Diagnostics disabled setting saves as false/default
+PASS Turning diagnostics off stops further recording
+PASS Adaptive Storage food remains visible to the indicator scan
+PASS Adaptive Storage food remains visible to the indicator scan
+PASS Test meals registered inside sbz Adaptive Storage fridge
+PASS Fridge meals counted exactly once in food runway
+PASS All six live colony indicators computed
+PASS Indicator values nonnegative
+PASS Every work row has a visible label
+PASS Bed rest exempt from main-job cap
+PASS Balanced preset loads rules without applying priorities
+PASS Named preset saves current rules
+PASS Preset overwrite requires explicit confirmation
+PASS Unconfirmed overwrite preserves original rules
+PASS Confirmed overwrite replaces named rules and job limit
+PASS Named preset survives library reload
+PASS Factory Balanced remains selectable
+PASS Built-in name can be locally overridden after confirmation
+PASS Factory defaults remain available without deleting a custom override
+PASS Focus preset loads: Clean
+PASS Focus configures everyone at priority 1: Clean
+PASS Focus priority survives full primary-role budget: Clean
+PASS Focus preset loads: Harvest
+PASS Focus configures everyone at priority 1: Harvest
+PASS Focus priority survives full primary-role budget: Harvest
+PASS Focus preset loads: Haul
+PASS Focus configures everyone at priority 1: Haul
+PASS Focus priority survives full primary-role budget: Haul
+PASS Focus presets preserve excluded colonists and locked priorities
+PASS Version-3 named presets preserve focus exemption
+PASS Absent mod jobs are skipped when loading a named preset
+PASS Saving another preset preserves unavailable jobs in stored definitions
+PASS Loading and saving presets never mutate live priorities or daily automation
+PASS Valid draft accepted
+PASS Manual draft applies to real pawn
+PASS Undo restores real priority
+PASS Locked assignment rejected
+PASS Excluded colonist rejected
+PASS Draft rejected when pawn becomes drafted after preview
+PASS Null draft entry rejected safely
+PASS Stale draft rejected
+PASS Out-of-range priority rejected
+PASS Temporary boost tracked
+PASS Expired boost restores original priority
+PASS External edit survives boost expiry
+PASS Staffing plan validates against live colony
+PASS Rule planner preserves real lock
+PASS Rule planner preserves real exclusion
+PASS Legacy Firefighter: every eligible worker planned
+PASS Legacy Firefighter: real assignments apply
+PASS Legacy Firefighter: undo restores every assignment
+PASS Legacy Firefighter: Off applies without fallback re-enabling work
+PASS Balanced Firefighter: every eligible worker planned
+PASS Balanced Firefighter: real assignments apply
+PASS Balanced Firefighter: undo restores every assignment
+PASS Balanced Firefighter: Off applies without fallback re-enabling work
+PASS Legacy Patient: every eligible worker planned
+PASS Legacy Patient: real assignments apply
+PASS Legacy Patient: undo restores every assignment
+PASS Legacy Patient: Off applies without fallback re-enabling work
+PASS Balanced Patient: every eligible worker planned
+PASS Balanced Patient: real assignments apply
+PASS Balanced Patient: undo restores every assignment
+PASS Balanced Patient: Off applies without fallback re-enabling work
+PASS Legacy Doctor: every eligible worker planned
+PASS Legacy Doctor: real assignments apply
+PASS Legacy Doctor: undo restores every assignment
+PASS Legacy Doctor: Off applies without fallback re-enabling work
+PASS Balanced Doctor: every eligible worker planned
+PASS Balanced Doctor: real assignments apply
+PASS Balanced Doctor: undo restores every assignment
+PASS Balanced Doctor: Off applies without fallback re-enabling work
+PASS Legacy PatientBedRest: every eligible worker planned
+PASS Legacy PatientBedRest: real assignments apply
+PASS Legacy PatientBedRest: undo restores every assignment
+PASS Legacy PatientBedRest: Off applies without fallback re-enabling work
+PASS Balanced PatientBedRest: every eligible worker planned
+PASS Balanced PatientBedRest: real assignments apply
+PASS Balanced PatientBedRest: undo restores every assignment
+PASS Balanced PatientBedRest: Off applies without fallback re-enabling work
+PASS Legacy BasicWorker: every eligible worker planned
+PASS Legacy BasicWorker: real assignments apply
+PASS Legacy BasicWorker: undo restores every assignment
+PASS Legacy BasicWorker: Off applies without fallback re-enabling work
+PASS Balanced BasicWorker: every eligible worker planned
+PASS Balanced BasicWorker: real assignments apply
+PASS Balanced BasicWorker: undo restores every assignment
+PASS Balanced BasicWorker: Off applies without fallback re-enabling work
+PASS Legacy Warden: every eligible worker planned
+PASS Legacy Warden: real assignments apply
+PASS Legacy Warden: undo restores every assignment
+PASS Legacy Warden: Off applies without fallback re-enabling work
+PASS Balanced Warden: every eligible worker planned
+PASS Balanced Warden: real assignments apply
+PASS Balanced Warden: undo restores every assignment
+PASS Balanced Warden: Off applies without fallback re-enabling work
+PASS Legacy Handling: every eligible worker planned
+PASS Legacy Handling: real assignments apply
+PASS Legacy Handling: undo restores every assignment
+PASS Legacy Handling: Off applies without fallback re-enabling work
+PASS Balanced Handling: every eligible worker planned
+PASS Balanced Handling: real assignments apply
+PASS Balanced Handling: undo restores every assignment
+PASS Balanced Handling: Off applies without fallback re-enabling work
+PASS Legacy Cooking: every eligible worker planned
+PASS Legacy Cooking: real assignments apply
+PASS Legacy Cooking: undo restores every assignment
+PASS Legacy Cooking: Off applies without fallback re-enabling work
+PASS Balanced Cooking: every eligible worker planned
+PASS Balanced Cooking: real assignments apply
+PASS Balanced Cooking: undo restores every assignment
+PASS Balanced Cooking: Off applies without fallback re-enabling work
+PASS Legacy Hunting: every eligible worker planned
+PASS Legacy Hunting: real assignments apply
+PASS Legacy Hunting: undo restores every assignment
+PASS Legacy Hunting: Off applies without fallback re-enabling work
+PASS Balanced Hunting: every eligible worker planned
+PASS Balanced Hunting: real assignments apply
+PASS Balanced Hunting: undo restores every assignment
+PASS Balanced Hunting: Off applies without fallback re-enabling work
+PASS Legacy Construction: every eligible worker planned
+PASS Legacy Construction: real assignments apply
+PASS Legacy Construction: undo restores every assignment
+PASS Legacy Construction: Off applies without fallback re-enabling work
+PASS Balanced Construction: every eligible worker planned
+PASS Balanced Construction: real assignments apply
+PASS Balanced Construction: undo restores every assignment
+PASS Balanced Construction: Off applies without fallback re-enabling work
+PASS Legacy Growing: every eligible worker planned
+PASS Legacy Growing: real assignments apply
+PASS Legacy Growing: undo restores every assignment
+PASS Legacy Growing: Off applies without fallback re-enabling work
+PASS Balanced Growing: every eligible worker planned
+PASS Balanced Growing: real assignments apply
+PASS Balanced Growing: undo restores every assignment
+PASS Balanced Growing: Off applies without fallback re-enabling work
+PASS Legacy Mining: every eligible worker planned
+PASS Legacy Mining: real assignments apply
+PASS Legacy Mining: undo restores every assignment
+PASS Legacy Mining: Off applies without fallback re-enabling work
+PASS Balanced Mining: every eligible worker planned
+PASS Balanced Mining: real assignments apply
+PASS Balanced Mining: undo restores every assignment
+PASS Balanced Mining: Off applies without fallback re-enabling work
+PASS Legacy PlantCutting: every eligible worker planned
+PASS Legacy PlantCutting: real assignments apply
+PASS Legacy PlantCutting: undo restores every assignment
+PASS Legacy PlantCutting: Off applies without fallback re-enabling work
+PASS Balanced PlantCutting: every eligible worker planned
+PASS Balanced PlantCutting: real assignments apply
+PASS Balanced PlantCutting: undo restores every assignment
+PASS Balanced PlantCutting: Off applies without fallback re-enabling work
+PASS Legacy Smithing: every eligible worker planned
+PASS Legacy Smithing: real assignments apply
+PASS Legacy Smithing: undo restores every assignment
+PASS Legacy Smithing: Off applies without fallback re-enabling work
+PASS Balanced Smithing: every eligible worker planned
+PASS Balanced Smithing: real assignments apply
+PASS Balanced Smithing: undo restores every assignment
+PASS Balanced Smithing: Off applies without fallback re-enabling work
+PASS Legacy Tailoring: every eligible worker planned
+PASS Legacy Tailoring: real assignments apply
+PASS Legacy Tailoring: undo restores every assignment
+PASS Legacy Tailoring: Off applies without fallback re-enabling work
+PASS Balanced Tailoring: every eligible worker planned
+PASS Balanced Tailoring: real assignments apply
+PASS Balanced Tailoring: undo restores every assignment
+PASS Balanced Tailoring: Off applies without fallback re-enabling work
+PASS Legacy Art: every eligible worker planned
+PASS Legacy Art: real assignments apply
+PASS Legacy Art: undo restores every assignment
+PASS Legacy Art: Off applies without fallback re-enabling work
+PASS Balanced Art: every eligible worker planned
+PASS Balanced Art: real assignments apply
+PASS Balanced Art: undo restores every assignment
+PASS Balanced Art: Off applies without fallback re-enabling work
+PASS Legacy Crafting: every eligible worker planned
+PASS Legacy Crafting: real assignments apply
+PASS Legacy Crafting: undo restores every assignment
+PASS Legacy Crafting: Off applies without fallback re-enabling work
+PASS Balanced Crafting: every eligible worker planned
+PASS Balanced Crafting: real assignments apply
+PASS Balanced Crafting: undo restores every assignment
+PASS Balanced Crafting: Off applies without fallback re-enabling work
+PASS Legacy Hauling: every eligible worker planned
+PASS Legacy Hauling: real assignments apply
+PASS Legacy Hauling: undo restores every assignment
+PASS Legacy Hauling: Off applies without fallback re-enabling work
+PASS Balanced Hauling: every eligible worker planned
+PASS Balanced Hauling: real assignments apply
+PASS Balanced Hauling: undo restores every assignment
+PASS Balanced Hauling: Off applies without fallback re-enabling work
+PASS Legacy Cleaning: every eligible worker planned
+PASS Legacy Cleaning: real assignments apply
+PASS Legacy Cleaning: undo restores every assignment
+PASS Legacy Cleaning: Off applies without fallback re-enabling work
+PASS Balanced Cleaning: every eligible worker planned
+PASS Balanced Cleaning: real assignments apply
+PASS Balanced Cleaning: undo restores every assignment
+PASS Balanced Cleaning: Off applies without fallback re-enabling work
+PASS Legacy Research: every eligible worker planned
+PASS Legacy Research: real assignments apply
+PASS Legacy Research: undo restores every assignment
+PASS Legacy Research: Off applies without fallback re-enabling work
+PASS Balanced Research: every eligible worker planned
+PASS Balanced Research: real assignments apply
+PASS Balanced Research: undo restores every assignment
+PASS Balanced Research: Off applies without fallback re-enabling work
+PASS Legacy Childcare: every eligible worker planned
+PASS Legacy Childcare: real assignments apply
+PASS Legacy Childcare: undo restores every assignment
+PASS Legacy Childcare: Off applies without fallback re-enabling work
+PASS Balanced Childcare: every eligible worker planned
+PASS Balanced Childcare: real assignments apply
+PASS Balanced Childcare: undo restores every assignment
+PASS Balanced Childcare: Off applies without fallback re-enabling work
+PASS Legacy DarkStudy: every eligible worker planned
+PASS Legacy DarkStudy: real assignments apply
+PASS Legacy DarkStudy: undo restores every assignment
+PASS Legacy DarkStudy: Off applies without fallback re-enabling work
+PASS Balanced DarkStudy: every eligible worker planned
+PASS Balanced DarkStudy: real assignments apply
+PASS Balanced DarkStudy: undo restores every assignment
+PASS Balanced DarkStudy: Off applies without fallback re-enabling work
+PASS Legacy Fishing: every eligible worker planned
+PASS Legacy Fishing: real assignments apply
+PASS Legacy Fishing: undo restores every assignment
+PASS Legacy Fishing: Off applies without fallback re-enabling work
+PASS Balanced Fishing: every eligible worker planned
+PASS Balanced Fishing: real assignments apply
+PASS Balanced Fishing: undo restores every assignment
+PASS Balanced Fishing: Off applies without fallback re-enabling work
+PASS Legacy HaulingUrgent: every eligible worker planned
+PASS Legacy HaulingUrgent: real assignments apply
+PASS Legacy HaulingUrgent: undo restores every assignment
+PASS Legacy HaulingUrgent: Off applies without fallback re-enabling work
+PASS Balanced HaulingUrgent: every eligible worker planned
+PASS Balanced HaulingUrgent: real assignments apply
+PASS Balanced HaulingUrgent: undo restores every assignment
+PASS Balanced HaulingUrgent: Off applies without fallback re-enabling work
+PASS Legacy TrainingCombat: every eligible worker planned
+PASS Legacy TrainingCombat: real assignments apply
+PASS Legacy TrainingCombat: undo restores every assignment
+PASS Legacy TrainingCombat: Off applies without fallback re-enabling work
+PASS Balanced TrainingCombat: every eligible worker planned
+PASS Balanced TrainingCombat: real assignments apply
+PASS Balanced TrainingCombat: undo restores every assignment
+PASS Balanced TrainingCombat: Off applies without fallback re-enabling work
+PASS Legacy OgRepairGearType: every eligible worker planned
+PASS Legacy OgRepairGearType: real assignments apply
+PASS Legacy OgRepairGearType: undo restores every assignment
+PASS Legacy OgRepairGearType: Off applies without fallback re-enabling work
+PASS Balanced OgRepairGearType: every eligible worker planned
+PASS Balanced OgRepairGearType: real assignments apply
+PASS Balanced OgRepairGearType: undo restores every assignment
+PASS Balanced OgRepairGearType: Off applies without fallback re-enabling work
+PASS Numbered priorities require explicit apply consent
+PASS Consented apply enables numbered priorities and applies the draft
+PASS Consented numbered apply remains undoable
+PASS Applying checkbox-mode draft does not mutate the caller's preview
+PASS Legacy: utility assignments do not consume specialist budget
+PASS Balanced: utility assignments do not consume specialist budget
+PASS Boost applies before lock-expiry test
+PASS New lock prevents expiry overwrite
+PASS Replacing boost retains original restore priority
+PASS Undo reinstates previous boost record
+PASS Reinstated boost restores original priority
+PASS Persistent boost staged for save
+PASS Rules export
+PASS Rules import
+PASS Invalid policy import leaves rules and policy untouched
+PASS Imported primary-priority fallback rejected without replacing rules
+PASS Version-2 preset preserves balanced backup and essential settings
+PASS Legacy version-1 preset imports with original semantics
+PASS Prepared food increases measured runway
+PASS Forbidden meals excluded from runway
+PASS Raw ingredients measured separately
+PASS Harvestable sown crop detected
+PASS Untreated real wound counted in care coverage
+PASS Balanced primary/backup plan validates against live colony
+PASS Balanced preview does not mutate real priorities
+PASS Balanced essential coverage: Doctor
+PASS Balanced essential coverage: Cooking
+PASS Balanced essential coverage: Growing
+PASS Balanced essential coverage: Construction
+PASS Balanced preset preserves manual hunting and dark study
+PASS Balanced preset preserves locks and excluded pawns
+PASS Game save written
+PASS Settings survive save and reload
+PASS Staffing rule survives save and reload
+PASS Preset name dirty flag and focus rule survive save and reload
+PASS Lock survives save and reload
+PASS Exclusion survives save and reload
+PASS Boost and undo history survive reload
+PASS Indicators compute after reload
+PASS AutoPriorities timer pauses mulld daily rules
+PASS Manager-overlap guard preserves every work assignment
+PASS Overlap guard does not disable the other mod's timer
+PASS Daily reassignment advances next-run timer
+PASS Daily staffing rules apply to eligible real pawns
+PASS Waiting daily automation does not rescan or invalidate colony needs
+PASS mulld is attached to the vanilla Work tab
+PASS Standalone mulld tab removed
+PASS Icon-group preset selection loads without applying
+PASS Proposed-number grid reads staged values only
+PASS Selecting a changed cell exposes current and proposed values without mutation
+PASS Segmented collapse hides preview without discarding draft
+PASS Segmented expand restores staged proposed-number view
+PASS Editing rules invalidates draft and marks preset modified
+PASS Save icon flow records custom name without applying
+PASS Save dialog rejects a rule set changed after opening
+PASS Save dialog opens a native overwrite confirmation
+PASS Overwrite confirmation does not commit before approval
+PASS Canceling overwrite preserves saved rules
+PASS Native overwrite confirmation saves replacement rules
+PASS Preset menu save dialog and inspection leave assignments unchanged
+PASS Balanced changes staged for native-grid review
+PASS Opening grid review leaves real priorities untouched
+PASS Reviewed balanced plan applies from the integrated panel
+PASS Applied balanced plan gives each available managed pawn a primary role
+PASS Applied balanced coverage: Doctor
+PASS Applied balanced coverage: Cooking
+PASS Applied balanced coverage: Growing
+PASS Applied balanced coverage: Construction
+PASS No game errors during load, reload and all integrated interface views
+COMPLETE 330 in-game checks passed.

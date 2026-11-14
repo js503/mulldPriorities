@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.4.0 — 2026-11-13
+
+- Implement the selected Clear Bands / Preset with rules layout: KPIs remain above Rules, Colonists and Settings; review controls sit directly above the native Work grid.
+- Replace tiny before/after arrows with full-size proposed numbers in gold-outlined cells. Selecting a cell exposes its current and proposed priority without modifying live work.
+- Add the centered preset-name / separate chevron / eye / disk icon group. Segment the existing base Work-tab toggle into name and chevron controls at its original position.
+- Add named presets, case-insensitive overwrite confirmation, 40-character names, atomic storage, missing-mod preservation and cross-colony use within a profile.
+- Add Balanced, Clean, Harvest and Haul presets, local overrides and access to factory defaults. Focus jobs can bypass primary-job caps while preserving locks, exclusions and active boosts.
+- Save preset identity/dirty status and focus rules with the map. Invalidate drafts after rule, lock or exclusion changes; reject stale save dialogs.
+- Add format-3 preset export while retaining format-1/2 import, plus persistent primary-job limits.
+- Keep icon assets cached and preset file I/O out of normal rendering/tick paths.
+
 ## 0.3.0 — 2026-11-13
 
 - Add global Performance diagnostics in Mod Settings, disabled by default. Record operation counts, average/worst elapsed time and managed allocation bytes, plus cached needs reads.

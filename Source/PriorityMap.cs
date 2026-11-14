@@ -16,6 +16,8 @@ namespace Mulld.Priorities
         public List<Assignment> UndoBoosts = new List<Assignment>();
         public bool Daily;
         public bool BalancedPolicy;
+        public string PresetName = "Custom";
+        public bool PresetDirty;
         public int NextDailyTick;
         public int MaxMainJobs = 2;
         public float FoodTarget = 2f;
@@ -78,13 +80,13 @@ namespace Mulld.Priorities
                 int priority = Math.Clamp(rule.Priority, 1, 4);
                 var eligible = pawns.Where(p => WorkAccess.Capable(p, rule.Work)).ToList();
                 var candidates = eligible.Select(p => new Candidate { Id = ids[p], Current = p.workSettings.GetPriority(rule.Work), Eligible = (!rule.AdultsOnly || WorkAccess.Adult(p)) && WorkAccess.Skill(p, rule.Work) >= rule.MinSkill, Locked = protectedKeys.Count > 0 && protectedKeys.Contains(WorkAccess.Key(p, rule.Work)), Score = WorkAccess.Score(p, rule.Work, rule.FavorPassion), MainJobs = loads[p] }).ToList();
-                var planned = Planner.Assign(candidates, Planner.StaffingTarget(rule.Mode, rule.Amount, candidates.Count(c => c.Eligible)), priority, MaxMainJobs, !WorkAccess.MainWork(rule.Work));
+                var planned = Planner.Assign(candidates, Planner.StaffingTarget(rule.Mode, rule.Amount, candidates.Count(c => c.Eligible)), priority, MaxMainJobs, !WorkAccess.MainWork(rule.Work) || rule.IgnoreMainJobLimit);
                 foreach (var p in eligible)
                 {
                     string key = WorkAccess.Key(p, rule.Work);
                     bool protect = protectedKeys.Contains(key);
                     int next = planned[ids[p]];
-                    if (!protect && next is 1 or 2 && WorkAccess.MainWork(rule.Work)) loads[p]++;
+                    if (!protect && next is 1 or 2 && WorkAccess.MainWork(rule.Work) && !rule.IgnoreMainJobLimit) loads[p]++;
                     if (!protect && next != p.workSettings.GetPriority(rule.Work)) assignments.Add(new Assignment(p, rule.Work, p.workSettings.GetPriority(rule.Work), next, "Staffing rule: " + rule.Mode + " " + rule.Amount));
                 }
             }
@@ -110,7 +112,7 @@ namespace Mulld.Priorities
                 }).ToList();
                 return new ColonyWork { Id = rule.Work.defName, Candidates = candidates, Target = Planner.StaffingTarget(rule.Mode, rule.Amount, candidates.Count(c => c.Eligible)), Priority = rule.Priority,
                     Backups = rule.Mode == "Off" ? 0 : rule.Backups, BackupPriority = rule.BackupPriority, FallbackPriority = rule.Mode == "Off" ? 0 : rule.FallbackPriority,
-                    Emergency = WorkAccess.Emergency(rule.Work), Essential = rule.Essential, CountsAsMain = WorkAccess.MainWork(rule.Work), GeneralWork = rule.Mode == "Everyone" && rule.Priority == 4 && rule.Work.defName is "Hauling" or "Cleaning", Order = -rule.Work.naturalPriority };
+                    Emergency = WorkAccess.Emergency(rule.Work), Essential = rule.Essential, CountsAsMain = WorkAccess.MainWork(rule.Work) && !rule.IgnoreMainJobLimit, GeneralWork = rule.Mode == "Everyone" && rule.Priority == 4 && rule.Work.defName is "Hauling" or "Cleaning", Order = -rule.Work.naturalPriority };
             }).ToList();
             var planned = Planner.AssignColony(inputs, MaxMainJobs);
             var assignments = new List<Assignment>();
@@ -268,6 +270,8 @@ namespace Mulld.Priorities
             Scribe_Collections.Look(ref UndoBoosts, "mulldUndoBoosts", LookMode.Deep);
             Scribe_Values.Look(ref Daily, "mulldDaily");
             Scribe_Values.Look(ref BalancedPolicy, "mulldBalancedPolicy");
+            Scribe_Values.Look(ref PresetName, "mulldPresetName", "Custom");
+            Scribe_Values.Look(ref PresetDirty, "mulldPresetDirty");
             Scribe_Values.Look(ref NextDailyTick, "mulldNextDailyTick");
             Scribe_Values.Look(ref MaxMainJobs, "mulldMaxMainJobs", 2);
             Scribe_Values.Look(ref FoodTarget, "mulldFoodTarget", 2f);

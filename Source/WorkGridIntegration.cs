@@ -21,6 +21,8 @@ namespace Mulld.Priorities
     [HarmonyPatch(typeof(PawnColumnWorker_WorkPriority), nameof(PawnColumnWorker_WorkPriority.DoCell))]
     public static class WorkGridPreview
     {
+        private static readonly string[] values = { "–", "1", "2", "3", "4" };
+        private static readonly Color[] colors = { new(.7f,.73f,.7f), new(.35f,.90f,.25f), new(.95f,.88f,.45f), new(.83f,.7f,.43f), new(.75f,.77f,.73f) };
         public static bool Prefix(PawnColumnWorker_WorkPriority __instance, Rect rect, Pawn pawn, PawnTable table)
         {
             var window=MainTabWindow_Priorities.Drawing;
@@ -31,12 +33,12 @@ namespace Mulld.Priorities
             var oldColor=GUI.color;var oldFont=Text.Font;var oldAnchor=Text.Anchor;bool oldWrap=Text.WordWrap;
             try
             {
-                var box=new Rect(rect.center.x-14,rect.center.y-13,28,26);
-                Widgets.DrawBoxSolid(box,new Color(.26f,.22f,.14f));
-                Widgets.DrawBoxSolidWithOutline(box,new Color(.26f,.22f,.14f),new Color(.85f,.69f,.40f));
-                GUI.color=new Color(.96f,.80f,.48f);Text.Font=GameFont.Tiny;Text.Anchor=TextAnchor.MiddleCenter;Text.WordWrap=false;
-                Widgets.Label(new Rect(box.x-3,box.y,box.width+6,box.height),(change.Before==0?"–":change.Before.ToString())+"→"+(change.After==0?"–":change.After.ToString()));
-                TooltipHandler.TipRegion(rect,pawn.LabelShort+" · "+WorkAccess.Label(work)+": "+WorkAccess.PriorityLabel(change.Before)+" → "+WorkAccess.PriorityLabel(change.After)+"\n"+change.Reason+"\nDraft only; actual priorities are unchanged.");
+                var box=new Rect(rect.center.x-12,rect.center.y-13,24,26);
+                Widgets.DrawBoxSolidWithOutline(box,new Color(.19f,.18f,.14f),window.IsInspected(change)?new Color(.98f,.85f,.58f):new Color(.72f,.59f,.36f));
+                GUI.color=colors[change.After];Text.Font=GameFont.Medium;Text.Anchor=TextAnchor.MiddleCenter;Text.WordWrap=false;
+                Widgets.Label(new Rect(box.x-3,box.y-1,box.width+6,box.height+2),values[change.After]);
+                TooltipHandler.TipRegion(rect,window.PreviewTip(change));
+                if(Widgets.ButtonInvisible(rect))window.Inspect(change);
             }
             finally{GUI.color=oldColor;Text.Font=oldFont;Text.Anchor=oldAnchor;Text.WordWrap=oldWrap;}
             return false;

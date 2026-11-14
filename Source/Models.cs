@@ -19,6 +19,7 @@ namespace Mulld.Priorities
         public int BackupPriority = 3;
         public int FallbackPriority;
         public bool Essential;
+        public bool IgnoreMainJobLimit;
         public void ExposeData()
         {
             Scribe_Defs.Look(ref Work, "work");
@@ -33,6 +34,7 @@ namespace Mulld.Priorities
             Scribe_Values.Look(ref BackupPriority, "backupPriority", 3);
             Scribe_Values.Look(ref FallbackPriority, "fallbackPriority");
             Scribe_Values.Look(ref Essential, "essential");
+            Scribe_Values.Look(ref IgnoreMainJobLimit, "ignoreMainJobLimit");
         }
     }
 

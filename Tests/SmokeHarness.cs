@@ -87,6 +87,7 @@ namespace Mulld.Priorities
                     pawnId = pawn.ThingID; workName = work.defName;
                     Current.Game.playSettings.useWorkPriorities = true;
                     foreach (var p in state.Workers) p.workSettings.Notify_UseWorkPrioritiesChanged();
+                    AuditNamedPresets(state);
                     int before = pawn.workSettings.GetPriority(work), after = before == 3 ? 4 : 3;
                     var edit = new Assignment(pawn, work, before, after, "Smoke test");
                     Check(state.Validate(new[] { edit }) == null, "Valid draft accepted");
@@ -187,6 +188,7 @@ namespace Mulld.Priorities
                     Check(balancedPlan.All(c=>c.Work.defName!="Hunting"&&c.Work.defName!="DarkStudy"),"Balanced preset preserves manual hunting and dark study");
                     Check(balancedPlan.All(c=>!state.IsLocked(c.Pawn,c.Work)&&state.Managed(c.Pawn)),"Balanced preset preserves locks and excluded pawns");
                     state.Rules=originalRules;state.BalancedPolicy=originalPolicy;
+                    state.PresetName="Persistence check";state.PresetDirty=true;state.Rule(work).IgnoreMainJobLimit=true;
                     GameDataSaveLoader.SaveGame("mulld-smoke");
                     Check(File.Exists(GenFilePaths.FilePathForSavedGame("mulld-smoke")), "Game save written");
                     phase = 2;
@@ -199,6 +201,7 @@ namespace Mulld.Priorities
                     var work = DefDatabase<WorkTypeDef>.GetNamed(workName);
                     Check(state.Daily && state.FoodTarget == 3.5f && state.MaxMainJobs == 3, "Settings survive save and reload");
                     Check(state.Rule(work).Enabled && state.Rule(work).Mode == "Everyone", "Staffing rule survives save and reload");
+                    Check(state.PresetName=="Persistence check"&&state.PresetDirty&&state.Rule(work).IgnoreMainJobLimit,"Preset name dirty flag and focus rule survive save and reload");
                     Check(state.IsLocked(pawn, work), "Lock survives save and reload");
                     Check(state.Workers.Count < 2 || !state.Managed(state.Workers[1]), "Exclusion survives save and reload");
                     Check(state.Boosts.Count == 1 && state.Undo.Count == 1, "Boost and undo history survive reload");
@@ -234,6 +237,7 @@ namespace Mulld.Priorities
                     Check(DefDatabase<MainButtonDef>.GetNamedSilentFail("MulldPriorities") == null, "Standalone mulld tab removed");
                     Find.MainTabsRoot.SetCurrentTab(DefDatabase<MainButtonDef>.GetNamed("Work"));
                     Find.TickManager.Pause();
+                    AuditPresetInterface(state,(MainTabWindow_Priorities)DefDatabase<MainButtonDef>.GetNamed("Work").TabWindow);
                     frames = 0;
                 }
                 else if (phase == 3)
@@ -273,7 +277,12 @@ namespace Mulld.Priorities
                     if(frames==250)ScreenCapture.CaptureScreenshot(Path.Combine(GenFilePaths.SaveDataFolderPath,"mulld-balanced-applied.png"));
                     if(frames==265)window.SmokeCollapse();
                     if(frames==290)ScreenCapture.CaptureScreenshot(Path.Combine(GenFilePaths.SaveDataFolderPath,"mulld-collapsed.png"));
-                    if (frames == 320)
+                    if(frames==310){window.SmokeToggle();Find.WindowStack.Add(new PresetSaveDialog(state.PresetName,(name,overwrite)=>window.SmokeSavePreset(name,overwrite)));}
+                    if(frames==340)ScreenCapture.CaptureScreenshot(Path.Combine(GenFilePaths.SaveDataFolderPath,"mulld-save-preset.png"));
+                    if(frames==350)Find.WindowStack.WindowOfType<PresetSaveDialog>().SmokeSubmit("UI preset");
+                    if(frames==375)ScreenCapture.CaptureScreenshot(Path.Combine(GenFilePaths.SaveDataFolderPath,"mulld-overwrite-preset.png"));
+                    if(frames==390){Find.WindowStack.WindowOfType<PresetOverwriteDialog>().SmokeConfirm();}
+                    if (frames == 420)
                     {
                         var errors = Log.Messages.Where(m => m.type == LogMessageType.Error).ToList();
                         File.WriteAllText(Path.Combine(GenFilePaths.SaveDataFolderPath, "game-messages.txt"), string.Join(Environment.NewLine, Log.Messages.Select(m => m.type + ": " + m.text + Environment.NewLine + m.StackTrace)));
@@ -339,7 +348,7 @@ namespace Mulld.Priorities
                 Check(!Presets.Import(state).StartsWith("Imported")&&ReferenceEquals(saved,state.Rules)&&state.BalancedPolicy==policy,"Invalid policy import leaves rules and policy untouched");
                 xml=System.Xml.Linq.XElement.Parse(original);xml.Elements("rule").First().SetAttributeValue("fallback",2);File.WriteAllText(path,xml.ToString());
                 Check(!Presets.Import(state).StartsWith("Imported")&&ReferenceEquals(saved,state.Rules),"Imported primary-priority fallback rejected without replacing rules");
-                xml=System.Xml.Linq.XElement.Parse(original);xml.SetAttributeValue("balanced",true);
+                xml=System.Xml.Linq.XElement.Parse(original);xml.SetAttributeValue("version",2);xml.SetAttributeValue("balanced",true);
                 var first=xml.Elements("rule").First();first.SetAttributeValue("backups",2);first.SetAttributeValue("backupPriority",4);first.SetAttributeValue("fallback",4);first.SetAttributeValue("essential",true);File.WriteAllText(path,xml.ToString());
                 Check(Presets.Import(state).StartsWith("Imported")&&state.BalancedPolicy&&state.Rules[0].Backups==2&&state.Rules[0].BackupPriority==4&&state.Rules[0].FallbackPriority==4&&state.Rules[0].Essential,"Version-2 preset preserves balanced backup and essential settings");
                 xml=System.Xml.Linq.XElement.Parse(original);xml.SetAttributeValue("version",1);xml.Attribute("balanced")?.Remove();
@@ -390,6 +399,84 @@ namespace Mulld.Priorities
                 }
             }
             finally{foreach(var c in originals)c.Pawn.workSettings.SetPriority(c.Work,c.Before);state.Rules=rules;state.BalancedPolicy=policy;state.MaxMainJobs=cap;state.Invalidate();}
+        }
+        private static string Priorities(PriorityMap state) => string.Join(";",state.Workers.SelectMany(p=>WorkAccess.Works().Where(w=>WorkAccess.Capable(p,w)).Select(w=>p.ThingID+"|"+w.defName+"="+p.workSettings.GetPriority(w))));
+        private static void AuditNamedPresets(PriorityMap state)
+        {
+            var oldRules=state.Rules;bool policy=state.BalancedPolicy,daily=state.Daily,dirty=state.PresetDirty;int cap=state.MaxMainJobs;string name=state.PresetName;
+            var locks=state.Locks.ToList();var excluded=state.Excluded.ToList();string before=Priorities(state);
+            string path=Path.Combine(GenFilePaths.ConfigFolderPath,"mulldPriorities-presets.xml"),backup=File.Exists(path)?File.ReadAllText(path):null;
+            state.Rules=new List<WorkRule>();
+            try
+            {
+                Check(PresetCatalog.Load(state,"Balanced")==null&&!state.PresetDirty&&state.PresetName=="Balanced","Balanced preset loads rules without applying priorities");
+                Check(PresetCatalog.Save(state,"Colony routine",false)==null,"Named preset saves current rules");
+                var cook=state.Rule(DefDatabase<WorkTypeDef>.GetNamed("Cooking"));cook.Priority=3;state.MaxMainJobs=1;
+                Check(PresetCatalog.Save(state,"COLONY ROUTINE",false)!=null,"Preset overwrite requires explicit confirmation");
+                Check(PresetCatalog.Load(state,"Colony routine")==null&&state.Rule(cook.Work).Priority==2,"Unconfirmed overwrite preserves original rules");
+                state.Rule(cook.Work).Priority=3;state.MaxMainJobs=1;
+                Check(PresetCatalog.Save(state,"colony routine",true)==null&&PresetCatalog.Load(state,"COLONY ROUTINE")==null&&state.Rule(cook.Work).Priority==3&&state.MaxMainJobs==1,"Confirmed overwrite replaces named rules and job limit");
+                PresetCatalog.Store.Reload();
+                Check(PresetCatalog.Load(state,"Colony routine")==null&&state.Rule(cook.Work).Priority==3,"Named preset survives library reload");
+                Check(PresetCatalog.Load(state,"Balanced")==null,"Factory Balanced remains selectable");
+                state.Rule(cook.Work).Priority=4;
+                Check(PresetCatalog.Save(state,"Balanced",true)==null&&PresetCatalog.Load(state,"Balanced")==null&&state.Rule(cook.Work).Priority==4,"Built-in name can be locally overridden after confirmation");
+                Check(PresetCatalog.Load(state,"Balanced",true)==null&&state.Rule(cook.Work).Priority==2&&state.PresetDirty&&PresetCatalog.Store.Contains("Balanced"),"Factory defaults remain available without deleting a custom override");
+                foreach(var focus in new[]{("Clean","Cleaning"),("Harvest","Growing"),("Haul","Hauling")})
+                {
+                    Check(PresetCatalog.Load(state,focus.Item1)==null,"Focus preset loads: "+focus.Item1);
+                    var work=DefDatabase<WorkTypeDef>.GetNamed(focus.Item2);var rule=state.Rule(work);state.MaxMainJobs=1;
+                    Check(rule.Mode=="Everyone"&&rule.Priority==1&&rule.IgnoreMainJobLimit,"Focus configures everyone at priority 1: "+focus.Item1);
+                    var plan=state.Plan();var eligible=state.Workers.Where(p=>state.Managed(p)&&WorkAccess.Available(p)&&WorkAccess.Capable(p,work)&&!state.IsLocked(p,work)).ToList();
+                    Check(eligible.Count>0&&eligible.All(p=>(plan.FirstOrDefault(c=>c.Pawn==p&&c.Work==work)?.After??p.workSettings.GetPriority(work))==1),"Focus priority survives full primary-role budget: "+focus.Item1);
+                }
+                var clean=DefDatabase<WorkTypeDef>.GetNamed("Cleaning");var pawn=state.Workers.First(p=>WorkAccess.Capable(p,clean));state.SetLock(pawn,clean,true);state.Excluded.Add(pawn.ThingID);
+                PresetCatalog.Load(state,"Clean");
+                Check(state.Plan().All(c=>c.Pawn!=pawn)&&state.IsLocked(pawn,clean),"Focus presets preserve excluded colonists and locked priorities");
+                Check(PresetCatalog.Save(state,"Cleaning routine",false)==null&&PresetCatalog.Load(state,"Cleaning routine")==null&&state.Rule(clean).IgnoreMainJobLimit,"Version-3 named presets preserve focus exemption");
+                var unknown=Presets.Capture(state);var extra=new System.Xml.Linq.XElement(unknown.Elements("rule").First());extra.SetAttributeValue("work","Mulld_MissingWorkForTest");unknown.Add(extra);
+                Check(PresetCatalog.Store.Save("Missing mod",unknown,false)==null&&PresetCatalog.Load(state,"Missing mod")==null&&state.Rules.All(r=>r.Work!=null),"Absent mod jobs are skipped when loading a named preset");
+                PresetCatalog.Save(state,"Another preset",false);PresetCatalog.Store.TryGet("Missing mod",out var retained);
+                Check(retained.Elements("rule").Any(r=>(string)r.Attribute("work")=="Mulld_MissingWorkForTest"),"Saving another preset preserves unavailable jobs in stored definitions");
+                Check(Priorities(state)==before&&state.Daily==daily,"Loading and saving presets never mutate live priorities or daily automation");
+            }
+            finally
+            {
+                state.Rules=oldRules;state.BalancedPolicy=policy;state.MaxMainJobs=cap;state.PresetName=name;state.PresetDirty=dirty;state.Locks=locks;state.Excluded=excluded;state.Invalidate();
+                if(backup==null)File.Delete(path);else File.WriteAllText(path,backup);PresetCatalog.Store.Reload();
+            }
+        }
+        private static void AuditPresetInterface(PriorityMap state,MainTabWindow_Priorities window)
+        {
+            string before=Priorities(state);
+            Check(window.SmokeLoadPreset("Balanced")==null,"Icon-group preset selection loads without applying");
+            window.SmokePreview();var change=window.SmokeFirstChange;
+            Check(change!=null&&window.Reviewing&&window.TryPreview(change.Pawn,change.Work,out var shown)&&shown.After==change.After,"Proposed-number grid reads staged values only");
+            window.SmokeInspect(change);
+            Check(window.SmokeInspection.Contains(WorkAccess.PriorityLabel(change.Before)+" → "+WorkAccess.PriorityLabel(change.After))&&Priorities(state)==before,"Selecting a changed cell exposes current and proposed values without mutation");
+            int draft=window.SmokeDraftCount;window.SmokeToggle();
+            Check(!window.Expanded&&!window.Reviewing&&window.SmokeDraftCount==draft,"Segmented collapse hides preview without discarding draft");
+            window.SmokeToggle();
+            Check(window.Expanded&&window.Reviewing&&window.SmokeDraftCount==draft,"Segmented expand restores staged proposed-number view");
+            window.SmokeRuleChanged();
+            Check(window.SmokeDraftCount==0&&!window.Reviewing&&state.PresetDirty,"Editing rules invalidates draft and marks preset modified");
+            Check(window.SmokeSavePreset("UI preset",false)==null&&!state.PresetDirty,"Save icon flow records custom name without applying");
+            var capturedSave=window.SmokeSaveAction();int capturePriority=state.Rule(change.Work).Priority;state.Rule(change.Work).Priority=capturePriority==1?2:1;
+            Check(capturedSave("Stale dialog preset",false)!=null&&!PresetCatalog.Store.Contains("Stale dialog preset"),"Save dialog rejects a rule set changed after opening");
+            state.Rule(change.Work).Priority=capturePriority;
+            int originalPriority=state.Rule(change.Work).Priority;int replacementPriority=originalPriority==2?3:2;state.Rule(change.Work).Priority=replacementPriority;
+            var dialog=new PresetSaveDialog("UI preset",(name,overwrite)=>window.SmokeSavePreset(name,overwrite));Find.WindowStack.Add(dialog);dialog.SmokeSubmit("UI preset");
+            var box=Find.WindowStack.Windows.OfType<PresetOverwriteDialog>().Last();
+            Check(box.PresetName=="UI preset","Save dialog opens a native overwrite confirmation");
+            PresetCatalog.Store.TryGet("UI preset",out var original);
+            Check((int?)original.Elements("rule").First(r=>(string)r.Attribute("work")==change.Work.defName).Attribute("priority")==originalPriority,"Overwrite confirmation does not commit before approval");
+            box.Close();PresetCatalog.Store.TryGet("UI preset",out var canceled);
+            Check(System.Xml.Linq.XNode.DeepEquals(original,canceled),"Canceling overwrite preserves saved rules");
+            dialog.SmokeSubmit("UI preset");box=Find.WindowStack.Windows.OfType<PresetOverwriteDialog>().Last();
+            box.SmokeConfirm();PresetCatalog.Store.TryGet("UI preset",out var replaced);
+            Check((int?)replaced.Elements("rule").First(r=>(string)r.Attribute("work")==change.Work.defName).Attribute("priority")==replacementPriority,"Native overwrite confirmation saves replacement rules");
+            Check(Priorities(state)==before,"Preset menu save dialog and inspection leave assignments unchanged");
+            window.SmokeLoadPreset("Balanced");
         }
         private static void AuditDiagnostics(PriorityMap state)
         {

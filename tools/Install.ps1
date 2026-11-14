@@ -12,7 +12,7 @@ if (Test-Path -LiteralPath $existing) {
     if ($metadata.ModMetaData.packageId -ne 'mulld.priorities') { throw 'Refusing to overwrite a different mod.' }
 }
 New-Item -ItemType Directory -Path $destination -Force | Out-Null
-foreach ($folder in @('About', 'Defs', 'Patches')) { Copy-Item -LiteralPath (Join-Path $repo $folder) -Destination $destination -Recurse -Force }
+foreach ($folder in @('About', 'Defs', 'Patches', 'Textures')) { Copy-Item -LiteralPath (Join-Path $repo $folder) -Destination $destination -Recurse -Force }
 $assemblyFolder = Join-Path $destination 'Assemblies'
 New-Item -ItemType Directory -Path $assemblyFolder -Force | Out-Null
 foreach ($file in Get-ChildItem -LiteralPath (Join-Path $repo 'Assemblies') -File) {
