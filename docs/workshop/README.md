@@ -22,3 +22,8 @@ Published and verified while signed out: https://steamcommunity.com/sharedfiles/
 
 Visibility: Public. Illustrated description and Harmony required item verified. Keep About/PublishedFileId.txt unchanged for updates.
 
+
+## Colony Briefing refresh
+
+Access instructions are included in both the Workshop description and in-game metadata. Description crops share a 1280-pixel width and come from the same capture; image URLs are pinned to an asset commit to avoid stale cached images. The 1280x720 local cover requires a game restart to replace the running game's cached square preview. Uploading the updated mod/cover is pending the Steam Workshop terms confirmation; the description has already been updated independently.
+
