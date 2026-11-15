@@ -17,6 +17,8 @@ A RimWorld 1.7 mod built into the Work tab.
 
 ## Install
 
+[Subscribe on Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3840047577)
+
 Requires **RimWorld 1.7 / Waylith** and **Harmony**. Uses the standard Off / 1–4 priorities.
 
 1. Place the mod in `RimWorld/Mods/mulldPriorities`.
@@ -43,3 +45,4 @@ Click a highlighted cell to compare its current and proposed priority. Use the *
 Tested with 99 loaded mod entries and 26 work types. Locks and exclusions are respected; unfamiliar mod work stays manual in built-in presets. Staffing coverage still depends on bills, access and available workers. Expanded priority scales and multiplayer are untested.
 
 [Build and development guide](docs/DEVELOPMENT.md) · [Test results](Tests/ProposedNumbers.md) · [Changelog](CHANGELOG.md)
+

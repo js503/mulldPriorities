@@ -15,3 +15,10 @@ Upload through RimWorld’s Mods menu. Preserve the generated `About/PublishedFi
 `description-preview.png` is a local layout preview, not a capture of a published Steam page. The four real-game crops in `images/` are all **640 × 144**. The description uses publicly accessible GitHub raw image URLs, verified before upload. The GitHub source link is included. Visibility: Public.
 
 
+
+## Published listing
+
+Published and verified while signed out: https://steamcommunity.com/sharedfiles/filedetails/?id=3840047577
+
+Visibility: Public. Illustrated description and Harmony required item verified. Keep About/PublishedFileId.txt unchanged for updates.
+
