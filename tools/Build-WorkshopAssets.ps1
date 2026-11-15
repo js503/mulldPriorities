@@ -20,11 +20,11 @@ if ((Get-Item $preview).Length -ge 1MB) { throw 'Workshop preview exceeds 1 MB.'
 Add-Type -AssemblyName System.Drawing
 $screen = [Drawing.Image]::FromFile((Join-Path $repo 'docs/screenshots/work-preview.png'))
 try {
-    foreach ($crop in @(@{Name='needs';Y=39;H=101},@{Name='rules';Y=180;H=270},@{Name='preview';Y=478;H=330})) {
-        $bitmap = [Drawing.Bitmap]::new(1280,$crop.H)
+    foreach ($crop in @(@{Name='needs';Y=39;H=101;W=1060},@{Name='rules';Y=180;H=270;W=1280},@{Name='preview';Y=478;H=330;W=1280})) {
+        $bitmap = [Drawing.Bitmap]::new($crop.W,$crop.H)
         $graphics = [Drawing.Graphics]::FromImage($bitmap)
         try {
-            $graphics.DrawImage($screen,[Drawing.Rectangle]::new(0,0,1280,$crop.H),0,$crop.Y,1280,$crop.H,[Drawing.GraphicsUnit]::Pixel)
+            $graphics.DrawImage($screen,[Drawing.Rectangle]::new(0,0,$crop.W,$crop.H),0,$crop.Y,$crop.W,$crop.H,[Drawing.GraphicsUnit]::Pixel)
             $bitmap.Save((Join-Path $repo ('docs/workshop/images/'+$crop.Name+'.png')),[Drawing.Imaging.ImageFormat]::Png)
         } finally { $graphics.Dispose(); $bitmap.Dispose() }
     }
