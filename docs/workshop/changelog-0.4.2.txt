@@ -1,0 +1,11 @@
+v0.4.2 — Compact Ledger
+
+- Replaced tall rule cards with a compact, paged table. Eight rules fit at 1280x900; smaller screens adapt automatically.
+- Added Edit options for minimum skill, backup priority, adult eligibility, passion preference and extra primary jobs.
+- Replaced KPI cards with aligned colony-needs rows, without accent strips.
+- Unified the preset name and dropdown arrow into one button; added a labeled Save Preset button.
+- Aligned Preview Changes, Discard Changes, Undo Last Apply and Apply Changes in one review bar.
+- Preserved grid previews, custom preset overwrite, locks, exclusions and protected undo.
+- Updated the Workshop screenshots and usage instructions.
+
+Validated with 99 loaded mod entries and 26 work types: 330 in-game checks passed at both 1280x900 and 1280x720, plus 67 standalone checks.

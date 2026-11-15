@@ -1,9 +1,10 @@
-param([string]$BrowserPath = 'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe')
+param([string]$BrowserPath = 'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe', [switch]$FeatureImagesOnly)
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path $PSScriptRoot -Parent
 $artifacts = Join-Path $repo 'artifacts'
 New-Item -ItemType Directory -Path $artifacts -Force | Out-Null
 if (!(Test-Path -LiteralPath $BrowserPath)) { throw 'Supply a Chromium browser with -BrowserPath.' }
+if (!$FeatureImagesOnly) {
 $preview = Join-Path $repo 'About/Preview.png'
 $before = if (Test-Path $preview) { (Get-Item $preview).LastWriteTimeUtc } else { [datetime]::MinValue }
 $profile = Join-Path $artifacts ('cover-render-' + [guid]::NewGuid().ToString('N'))
@@ -15,9 +16,11 @@ Add-Type -AssemblyName System.Drawing
 $image = [Drawing.Image]::FromFile($preview)
 try { if ($image.Width -ne 1280 -or $image.Height -ne 720) { throw 'Expected a 1280x720 cover.' } } finally { $image.Dispose() }
 if ((Get-Item $preview).Length -ge 1MB) { throw 'Workshop preview exceeds 1 MB.' }
+}
+Add-Type -AssemblyName System.Drawing
 $screen = [Drawing.Image]::FromFile((Join-Path $repo 'docs/screenshots/work-preview.png'))
 try {
-    foreach ($crop in @(@{Name='needs';Y=175;H=85},@{Name='rules';Y=265;H=196},@{Name='preview';Y=566;H=245})) {
+    foreach ($crop in @(@{Name='needs';Y=39;H=101},@{Name='rules';Y=180;H=270},@{Name='preview';Y=478;H=330})) {
         $bitmap = [Drawing.Bitmap]::new(1280,$crop.H)
         $graphics = [Drawing.Graphics]::FromImage($bitmap)
         try {
@@ -26,4 +29,4 @@ try {
         } finally { $graphics.Dispose(); $bitmap.Dispose() }
     }
 } finally { $screen.Dispose() }
-Write-Output 'Built Cinema edition preview (1280x720) and real-game feature crops.'
+Write-Output 'Built current real-game feature crops; Cinema cover retained when FeatureImagesOnly is set.'
