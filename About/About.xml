@@ -16,11 +16,14 @@
   <loadAfter>
     <li>brrainz.harmony</li>
   </loadAfter>
-  <description>See what your colony needs. Give your pawns useful work. Review before applying.
+  <description>Colony needs, useful work, and reviewable priority changes.
 
-mulld Priorities brings colony needs and work rules into the Work tab. Track food, care and harvest pressure; choose Balanced, Clean, Harvest or Haul; and preview changes directly in the grid. Includes custom presets, backups, locks, exclusions and undo.
+HOW TO OPEN
+Enable Harmony and mulld Priorities, then restart RimWorld. Load a colony, open Work, and click the mulld Priorities control above the grid to expand the panel.
 
-Manual approval by default. Optional daily automation and diagnostics are off by default.
+Choose a preset or edit Rules, click the eye to Preview Changes, then Apply. The disk saves a custom preset.
+
+Includes food, care and harvest indicators; primary work and backups; locks, exclusions and undo. Automation and diagnostics are off by default.
 
 Requires RimWorld 1.7 and Harmony. Standard Off / 1–4 priorities.</description>
 </ModMetaData>

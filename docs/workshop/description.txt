@@ -1,27 +1,27 @@
 [b]Colony needs. Useful work. Your approval.[/b]
 
-[h2]Colony needs at a glance[/h2]
-See food runway, care coverage and harvest pressure.
+[h2]How to open[/h2]
+[list]
+[*]Subscribe and enable Harmony and mulld Priorities in Mods, then restart RimWorld.
+[*]Load a colony and open the [b]Work[/b] tab.
+[*]Click [b]mulld Priorities[/b] above the work grid to expand the panel.
+[/list]
+
+[h2]01 / Read the colony[/h2]
+Food, care and harvest indicators show where attention is needed.
 [img]https://raw.githubusercontent.com/js503/mulldPriorities/main/docs/workshop/images/needs.png[/img]
 
-[h2]Presets and custom rules[/h2]
-Choose Balanced, Clean, Harvest or Haul. Save your own.
-[img]https://raw.githubusercontent.com/js503/mulldPriorities/main/docs/workshop/images/presets.png[/img]
+[h2]02 / Set the rules[/h2]
+Choose Balanced, Clean, Harvest or Haul. Adjust primary workers and backups, or save your own preset with the disk.
+[img]https://raw.githubusercontent.com/js503/mulldPriorities/main/docs/workshop/images/rules.png[/img]
 
-[h2]Preview before applying[/h2]
-See proposed numbers in the grid. Apply when you are ready.
+[h2]03 / Approve the work[/h2]
+Click the eye to [b]Preview Changes[/b]. Gold cells show proposed priorities. Nothing changes until you click [b]Apply[/b].
 [img]https://raw.githubusercontent.com/js503/mulldPriorities/main/docs/workshop/images/preview.png[/img]
 
-[h2]Keep control[/h2]
-Exclude colonists, lock assignments, discard changes or undo.
-[img]https://raw.githubusercontent.com/js503/mulldPriorities/main/docs/workshop/images/control.png[/img]
-
-Manual approval by default. Automation and diagnostics are optional and off by default.
+[b]Your assignments stay yours.[/b]
+Exclude colonists, lock jobs, discard a draft or undo the last apply. Daily automation and diagnostics are optional and off by default.
 
 Requires RimWorld 1.7 and Harmony. Standard Off / 1–4 priorities.
 
 [url=https://github.com/js503/mulldPriorities]GitHub — source code and issues[/url]
-
-Feedback welcome. Report issues on GitHub.
-
-
