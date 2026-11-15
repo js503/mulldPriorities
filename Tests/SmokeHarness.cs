@@ -461,6 +461,15 @@ namespace Mulld.Priorities
         {
             Check(MainTabWindow_Priorities.LedgerCapacity(259) == 8, "Compact ledger fits eight rows with paging at 900px");
             Check(MainTabWindow_Priorities.LedgerCapacity(103) == 2, "Compact ledger reduces page size on short screens");
+            foreach (float width in new[] { 1013f, 1269f, 1909f, 1267.5f })
+            {
+                var band = new Rect(5, 0, width, 28);
+                foreach (int columns in new[] { 2, 3, 4 })
+                    Check(MainTabWindow_Priorities.ButtonColumn(band, 0, columns).xMin == band.xMin && MainTabWindow_Priorities.ButtonColumn(band, columns - 1, columns).xMax == band.xMax,
+                        "Button band preserves both shared edges: " + width + "/" + columns);
+                Check(MainTabWindow_Priorities.LedgerCell(band, 0, 0).xMin == band.xMin && MainTabWindow_Priorities.LedgerCell(band, 6, 0).xMax == band.xMax,
+                    "Ledger buttons preserve shared edges: " + width);
+            }
             string before=Priorities(state);
             Check(window.SmokeLoadPreset("Balanced")==null,"Preset dropdown selection loads without applying");
             window.SmokePreview();var change=window.SmokeFirstChange;

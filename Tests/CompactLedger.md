@@ -20,3 +20,8 @@ Build with `tools/Build.ps1 -WithSmokeTests`, prepare `tools/New-TestRuntime.ps1
 Raw logs and screenshots remain in ignored `artifacts/ledger-release-900` and `artifacts/ledger-release-720`. The normal configuration and source save hashes were verified unchanged. Release assemblies are rebuilt without the smoke harness before installation and packaging.
 
 This verifies assignment and UI compatibility with the tested list, not every behavior of every third-party work giver.
+
+## 0.4.3 alignment correction
+
+The KPI suggestion and ledger Edit buttons had extra right insets; the base toggle extended one pixel beyond the shared edge. All now meet the same content boundary. Tabs, presets and review actions share a column-layout helper with eight-pixel gutters. Edge assertions cover integer and fractional widths (1013, 1269, 1909 and 1267.5).
+Both final in-game runs passed 346 checks with the current mod list, at 1280x900 and 1280x720. Screenshots were inspected; original save/config hashes remained unchanged. The initial concurrent 900px process exited during startup before the harness; its standalone retry completed successfully.

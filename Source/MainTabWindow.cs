@@ -22,6 +22,20 @@ namespace Mulld.Priorities
         private Vector2 scroll;
         private int rulePage;
         private static readonly float[] ledgerEdges = { 0, .20f, .26f, .46f, .57f, .73f, .88f, 1 };
+        // All button bands share the same outer edges; only interior columns have gutters.
+        internal static Rect ButtonColumn(Rect area, int index, int count)
+        {
+            float unit = (area.width + 8) / count;
+            float left = index == 0 ? area.x : area.x + Mathf.Round(index * unit);
+            float right = index == count - 1 ? area.xMax : area.x + Mathf.Round((index + 1) * unit) - 8;
+            return new Rect(left, area.y, right - left, area.height);
+        }
+        internal static Rect LedgerCell(Rect area, int column, float y)
+        {
+            float left = column == 0 ? area.x : area.x + Mathf.Round(area.width * ledgerEdges[column]) + 4;
+            float right = column == ledgerEdges.Length - 2 ? area.xMax : area.x + Mathf.Round(area.width * ledgerEdges[column + 1]) - 4;
+            return new Rect(left, y, right - left, 25);
+        }
         private static readonly string[] ledgerHeadings = { "Work", "Auto", "Primary workers", "Priority", "Backups", "Others", "Options" };
         internal static int LedgerCapacity(float height) => Math.Max(1, (int)((height - 51) / 26));
         private bool drawingNative, resizePending, review, enableNumbered;
@@ -54,7 +68,7 @@ namespace Mulld.Priorities
                     drawingNative = true; Drawing = this;
                     base.DoWindowContents(new Rect(0, 0, rect.width, Math.Max(30, rect.height - height)));
                     Text.Font = GameFont.Small; Text.Anchor = TextAnchor.UpperLeft; GUI.color = Color.white;
-                    var toggle = new Rect(rect.width - 184, 4, 180, 28);
+                    var toggle = new Rect(rect.width - 185, 4, 180, 28);
                     bool clicked = Widgets.ButtonText(new Rect(toggle.x, toggle.y, toggle.width - 30, toggle.height), "mulld Priorities");
                     clicked |= Widgets.ButtonText(new Rect(toggle.xMax - 30, toggle.y, 30, toggle.height), Expanded ? "▴" : "▾");
                     if (clicked) ToggleExpanded();
@@ -80,9 +94,8 @@ namespace Mulld.Priorities
             int workers = State.WorkerCount;
             Label(new Rect(area.width * .55f, 6, area.width * .45f - 5, 21), workers + (workers == 1 ? " colonist · " : " colonists · ") + mode, Muted);
             DrawNeeds(new Rect(5, 34, area.width - 10, 101));
-            float tabWidth = (area.width - 26) / 3;
             for (int i = 0; i < pages.Length; i++)
-                if (Widgets.ButtonText(new Rect(5 + i * (tabWidth + 8), 142, tabWidth, 27), page == pages[i] ? "[" + pages[i] + "]" : pages[i])) { page = pages[i]; scroll = Vector2.zero; }
+                if (Widgets.ButtonText(ButtonColumn(new Rect(5, 142, area.width - 10, 27), i, 3), page == pages[i] ? "[" + pages[i] + "]" : pages[i])) { page = pages[i]; scroll = Vector2.zero; }
             DrawPresetControl(new Rect(5, 176, area.width - 10, 28));
             var body = new Rect(5, 211, area.width - 10, Math.Max(60, area.height - 301));
             if (page == "Rules") DrawRules(body);
@@ -94,15 +107,14 @@ namespace Mulld.Priorities
         private void DrawPresetControl(Rect area)
         {
             string name = (State.PresetName ?? "Custom") + (State.PresetDirty ? " *" : "");
-            float width = (area.width - 8) / 2;
-            var preset = new Rect(area.x, area.y, width, area.height);
+            var preset = ButtonColumn(area, 0, 2);
             if (Widgets.ButtonText(preset, "")) OpenPresets();
             var anchor = Text.Anchor;
             Text.Anchor = TextAnchor.MiddleCenter;
             Label(new Rect(preset.x + 28, preset.y, preset.width - 56, preset.height), name);
             Label(new Rect(preset.xMax - 28, preset.y, 24, preset.height), "▾");
             Text.Anchor = anchor;
-            if (Widgets.ButtonText(new Rect(area.x + width + 8, area.y, width, area.height), "Save Preset…"))
+            if (Widgets.ButtonText(ButtonColumn(area, 1, 2), "Save Preset…"))
                 Find.WindowStack.Add(new PresetSaveDialog(State.PresetName, CaptureSaveAction()));
         }
         private void OpenPresets()
@@ -155,7 +167,7 @@ namespace Mulld.Priorities
             }
             Label(new Rect(area.x + 4, area.y + 76, area.width - 210, 23), active.Resolved ? active.Status : active.Explanation, Muted);
             var suggestion = active.Suggestion;
-            if (Widgets.ButtonText(new Rect(area.xMax - 195, area.y + 75, 190, 25), active.Resolved ? "Target met" : suggestion == null ? "No change suggested" : "Preview " + suggestion.Pawn.LabelShort + " boost", active: suggestion != null))
+            if (Widgets.ButtonText(new Rect(area.xMax - 190, area.y + 75, 190, 25), active.Resolved ? "Target met" : suggestion == null ? "No change suggested" : "Preview " + suggestion.Pawn.LabelShort + " boost", active: suggestion != null))
             { Stage(suggestion.Copy()); BeginReview(); }
         }
         private void DrawFooter(Rect area)
@@ -166,11 +178,11 @@ namespace Mulld.Priorities
             if (review && !Current.Game.playSettings.useWorkPriorities)
                 Widgets.CheckboxLabeled(new Rect(area.x, area.y + 28, area.width, 23), "Enable numbered work priorities for this save when applying", ref enableNumbered);
             else Label(new Rect(area.x, area.y + 28, area.width, 23), review ? inspectionText ?? "Select a gold cell to see its current → proposed priority." : status, review ? Gold : Muted);
-            float width = (area.width - 24) / 4, y = area.y + 51;
-            if (Widgets.ButtonText(new Rect(area.x, y, width, 28), "Preview Changes")) { StageRules(); BeginReview(); }
-            if (Widgets.ButtonText(new Rect(area.x + width + 8, y, width, 28), "Discard Changes", active: draft.Count > 0)) { ClearDraft(); status = "Draft discarded; priorities unchanged."; }
-            if (Widgets.ButtonText(new Rect(area.x + 2 * (width + 8), y, width, 28), "Undo Last Apply", active: State.Undo.Count > 0 && draft.Count == 0)) status = State.UndoLast();
-            if (Widgets.ButtonText(new Rect(area.x + 3 * (width + 8), y, width, 28), draft.Count == 0 ? "Apply Changes" : "Apply " + draft.Count + " Changes", active: review && draft.Count > 0 && (Current.Game.playSettings.useWorkPriorities || enableNumbered)))
+            var actions = new Rect(area.x, area.y + 51, area.width, 28);
+            if (Widgets.ButtonText(ButtonColumn(actions, 0, 4), "Preview Changes")) { StageRules(); BeginReview(); }
+            if (Widgets.ButtonText(ButtonColumn(actions, 1, 4), "Discard Changes", active: draft.Count > 0)) { ClearDraft(); status = "Draft discarded; priorities unchanged."; }
+            if (Widgets.ButtonText(ButtonColumn(actions, 2, 4), "Undo Last Apply", active: State.Undo.Count > 0 && draft.Count == 0)) status = State.UndoLast();
+            if (Widgets.ButtonText(ButtonColumn(actions, 3, 4), draft.Count == 0 ? "Apply Changes" : "Apply " + draft.Count + " Changes", active: review && draft.Count > 0 && (Current.Game.playSettings.useWorkPriorities || enableNumbered)))
             {
                 string error = ApplyDraft(enableNumbered);
                 status = error ?? "Priorities applied. Previous priorities saved for undo.";
@@ -234,7 +246,7 @@ namespace Mulld.Priorities
             int capacity = LedgerCapacity(area.height);
             int lastPage = Math.Max(0, (works.Count - 1) / capacity);
             rulePage = Math.Min(rulePage, lastPage);
-            Rect Cell(int column, float y) => new Rect(area.x + area.width * ledgerEdges[column] + 3, y, area.width * (ledgerEdges[column + 1] - ledgerEdges[column]) - 6, 25);
+            Rect Cell(int column, float y) => LedgerCell(area, column, y);
             for (int c = 0; c < ledgerHeadings.Length; c++) Label(Cell(c, area.y), ledgerHeadings[c], Muted);
             int start = rulePage * capacity, end = Math.Min(works.Count, start + capacity);
             for (int i = start; i < end; i++)

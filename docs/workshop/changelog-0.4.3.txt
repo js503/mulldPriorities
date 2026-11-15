@@ -1,0 +1,3 @@
+02 // Fix
+- Aligned the right edges of the suggestion, tab, preset, Edit, paging, review and mulld Priorities controls.
+- Standardized button spacing across different window widths.

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.3 — 2026-11-15
+
+- Align KPI suggestion, tab, preset, rule Edit, paging, review and base-toggle controls to the same right edge.
+- Use consistent interior gutters and rounded column boundaries across button bands.
+
 ## 0.4.2 — 2026-11-14
 
 - Add the Compact Ledger: paged rule rows, inline primary/backup controls and an Edit dialog for advanced options.
