@@ -12,7 +12,7 @@ Upload through RimWorld’s Mods menu. Preserve the generated `About/PublishedFi
 
 ## Illustrated description
 
-`description-preview.png` is a local layout preview, not a capture of a published Steam page. The four real-game crops in `images/` are all **640 × 144**. The description uses publicly accessible GitHub raw image URLs, verified before upload. The GitHub source link is included. Visibility: Public.
+The description uses three real-game crops with a consistent **1280-pixel width**, pinned public GitHub image URLs, and a GitHub source link. The approved layout is **01 // Features**, **02 // How to open**, and **03 // Dependencies & Requirements**. Visibility: Public.
 
 
 
@@ -25,5 +25,5 @@ Visibility: Public. Illustrated description and Harmony required item verified. 
 
 ## Colony Briefing refresh
 
-Access instructions are included in both the Workshop description and in-game metadata. Description crops share a 1280-pixel width and come from the same capture; image URLs are pinned to an asset commit to avoid stale cached images. The 1280x720 local cover requires a game restart to replace the running game's cached square preview. Uploading the updated mod/cover is pending the Steam Workshop terms confirmation; the description has already been updated independently.
+Access instructions are included in both the Workshop description and in-game metadata. Description crops share a 1280-pixel width and come from the same capture; image URLs are pinned to an asset commit to avoid stale cached images. The approved Cinema edition cover is 1280x720 and shared with the in-game preview. Restart RimWorld after replacing preview assets so the uploader and Mods menu use fresh metadata. After uploading through the game, restore `description.txt` in the Workshop editor: the native uploader can replace rich text with the in-game description.
 

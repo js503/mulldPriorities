@@ -2,6 +2,9 @@
 
 ## 0.4.1 — 2026-11-14
 
+- Refresh the Workshop and in-game preview with the approved Cinema edition cover, a real work-grid capture and the mulld wine-making mascot.
+- Organize the Workshop description into Features, How to open, and Dependencies & Requirements; include access instructions in-game.
+
 - Standardize the repository, installed folder, release packages and GitHub destination as mulldPriorities.
 - Migrate the legacy installed folder and preserve its Mod Settings under the corrected folder name.
 - Rewrite the README with real in-game screenshots and move detailed developer instructions into docs/DEVELOPMENT.md.

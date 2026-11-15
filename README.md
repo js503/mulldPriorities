@@ -1,5 +1,7 @@
 # mulld Priorities
 
+![mulld Priorities — Cinema edition](About/Preview.png)
+
 **See what your colony needs. Give your pawns useful work. Review before applying.**
 
 A RimWorld 1.7 mod built into the Work tab.
