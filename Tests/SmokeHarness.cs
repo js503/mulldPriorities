@@ -288,6 +288,11 @@ namespace Mulld.Priorities
                     if(frames==350)Find.WindowStack.WindowOfType<PresetSaveDialog>().SmokeSubmit("UI preset");
                     if(frames==375)ScreenCapture.CaptureScreenshot(Path.Combine(GenFilePaths.SaveDataFolderPath,"mulld-overwrite-preset.png"));
                     if(frames==390){Find.WindowStack.WindowOfType<PresetOverwriteDialog>().SmokeConfirm();}
+                    if (frames == 395) window.SmokeLastRulePage();
+                    if (frames == 400) ScreenCapture.CaptureScreenshot(Path.Combine(GenFilePaths.SaveDataFolderPath,"mulld-last-rules.png"));
+                    if (frames == 402) window.SmokeRuleOptions(work);
+                    if (frames == 410) ScreenCapture.CaptureScreenshot(Path.Combine(GenFilePaths.SaveDataFolderPath,"mulld-rule-options.png"));
+                    if (frames == 415) Find.WindowStack.WindowOfType<RuleOptionsDialog>()?.Close();
                     if (frames == 420)
                     {
                         var errors = Log.Messages.Where(m => m.type == LogMessageType.Error).ToList();
@@ -454,8 +459,10 @@ namespace Mulld.Priorities
         }
         private static void AuditPresetInterface(PriorityMap state,MainTabWindow_Priorities window)
         {
+            Check(MainTabWindow_Priorities.LedgerCapacity(259) == 8, "Compact ledger fits eight rows with paging at 900px");
+            Check(MainTabWindow_Priorities.LedgerCapacity(103) == 2, "Compact ledger reduces page size on short screens");
             string before=Priorities(state);
-            Check(window.SmokeLoadPreset("Balanced")==null,"Icon-group preset selection loads without applying");
+            Check(window.SmokeLoadPreset("Balanced")==null,"Preset dropdown selection loads without applying");
             window.SmokePreview();var change=window.SmokeFirstChange;
             Check(change!=null&&window.Reviewing&&window.TryPreview(change.Pawn,change.Work,out var shown)&&shown.After==change.After,"Proposed-number grid reads staged values only");
             window.SmokeInspect(change);
@@ -466,7 +473,7 @@ namespace Mulld.Priorities
             Check(window.Expanded&&window.Reviewing&&window.SmokeDraftCount==draft,"Segmented expand restores staged proposed-number view");
             window.SmokeRuleChanged();
             Check(window.SmokeDraftCount==0&&!window.Reviewing&&state.PresetDirty,"Editing rules invalidates draft and marks preset modified");
-            Check(window.SmokeSavePreset("UI preset",false)==null&&!state.PresetDirty,"Save icon flow records custom name without applying");
+            Check(window.SmokeSavePreset("UI preset",false)==null&&!state.PresetDirty,"Save Preset flow records custom name without applying");
             var capturedSave=window.SmokeSaveAction();int capturePriority=state.Rule(change.Work).Priority;state.Rule(change.Work).Priority=capturePriority==1?2:1;
             Check(capturedSave("Stale dialog preset",false)!=null&&!PresetCatalog.Store.Contains("Stale dialog preset"),"Save dialog rejects a rule set changed after opening");
             state.Rule(change.Work).Priority=capturePriority;

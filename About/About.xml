@@ -26,7 +26,7 @@ Approve the work: preview proposed priorities in the grid, then Apply.
 HOW TO OPEN
 Enable Harmony and mulld Priorities, then restart RimWorld. Load a colony, open Work, and click the mulld Priorities control above the grid to expand the panel.
 
-The eye previews changes. The disk saves or overwrites a custom preset.
+Preview Changes stages a draft. Save Preset saves or overwrites a custom preset.
 
 Keep control with primary workers, backups, locks, exclusions and undo. Daily automation and diagnostics are optional and off by default.
 

@@ -12,6 +12,7 @@ A RimWorld 1.7 mod built into the Work tab.
 
 - **Colony needs:** food runway, care coverage and harvest pressure above the work grid.
 - **Balanced assignments:** essential jobs covered, with primary workers, backups and spare-time work.
+- **Compact rules:** browse work types in a paged ledger; open Edit for advanced options.
 - **Presets:** Balanced, Clean, Harvest and Haul—or save and overwrite your own.
 - **Clear previews:** proposed numbers highlighted directly in the grid. Nothing changes until you apply.
 - **Your control:** colonist exclusions, locked assignments, discard and undo.
@@ -29,9 +30,9 @@ Requires **RimWorld 1.7 / Waylith** and **Harmony**. Uses the standard Off / 1�
 
 ## Use
 
-Choose a preset → adjust **Rules** → click the **eye** to **Preview Changes** → **Apply**.
+Choose a preset → adjust **Rules** → click **Preview Changes** → **Apply**.
 
-Click a highlighted cell to compare its current and proposed priority. Use the **disk** to save your rules as a named preset.
+Click a highlighted cell to compare its current and proposed priority. Use **Save Preset…** to save your rules as a named preset.
 
 <details>
 <summary>Custom presets</summary>
@@ -46,5 +47,5 @@ Click a highlighted cell to compare its current and proposed priority. Use the *
 
 Tested with 99 loaded mod entries and 26 work types. Locks and exclusions are respected; unfamiliar mod work stays manual in built-in presets. Staffing coverage still depends on bills, access and available workers. Expanded priority scales and multiplayer are untested.
 
-[Build and development guide](docs/DEVELOPMENT.md) · [Test results](Tests/ProposedNumbers.md) · [Changelog](CHANGELOG.md)
+[Build and development guide](docs/DEVELOPMENT.md) · [Test results](Tests/CompactLedger.md) · [Changelog](CHANGELOG.md)
 

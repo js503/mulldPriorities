@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.2 — 2026-11-14
+
+- Add the Compact Ledger: paged rule rows, inline primary/backup controls and an Edit dialog for advanced options.
+- Replace KPI cards with aligned needs rows, without accent strips.
+- Unify the preset dropdown and label Save Preset; align Preview Changes, Discard Changes, Undo Last Apply and Apply Changes in one review bar.
+- Adapt the number of visible rules to screen height while keeping the native Work grid below.
+
 ## 0.4.1 — 2026-11-14
 
 - Refresh the Workshop and in-game preview with the approved Cinema edition cover, a real work-grid capture and the mulld wine-making mascot.

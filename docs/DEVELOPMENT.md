@@ -6,11 +6,13 @@ Colony needs and work priorities together inside RimWorld 1.7's **Work** tab.
 
 1. Enable Harmony and **mulld Priorities**, then restart RimWorld.
 2. Open **Work**. The segmented **mulld Priorities / chevron** control expands or collapses the extension above the native grid.
-3. Use the centered preset name or its separate chevron to choose a preset. **Rules**, **Colonists** and **Settings** stay below the always-visible colony KPIs.
-4. Click the **eye** to **Preview Changes**. Gold-outlined grid cells show the proposed number at full size; click one to see its current → proposed value in the review row. Other assignments remain current.
+3. Use the unified preset dropdown to choose a preset. **Rules**, **Colonists** and **Settings** stay below the always-visible colony KPIs.
+4. Click **Preview Changes**. Gold-outlined grid cells show the proposed number at full size; click one to see its current → proposed value in the review row. Other assignments remain current.
 5. **Apply N Changes** approves the draft. Preview, preset selection and preset saving never apply work assignments themselves.
 
-The **disk** opens **Save Rules As**. Enter a custom name; existing names require an explicit, compact overwrite confirmation. Presets include rules, the primary-job limit and policy. They do not contain colonist exclusions, locks, temporary boosts, food targets or the daily-automation switch. A changed rule invalidates the draft and marks the current preset with `*`.
+The compact rule table uses Previous/Next pages. **Edit…** opens minimum skill, backup priority, age, passion and focus options. Page size adapts to screen height.
+
+**Save Preset…** opens **Save Rules As**. Enter a custom name; existing names require an explicit, compact overwrite confirmation. Presets include rules, the primary-job limit and policy. They do not contain colonist exclusions, locks, temporary boosts, food targets or the daily-automation switch. A changed rule invalidates the draft and marks the current preset with `*`.
 
 When applying from checkbox mode, undo preserves the stored numbered assignments revealed by the switch. Discard clears the draft. Undo reverses the last applied batch when its assignments have not since changed or become protected. If numbered priorities are disabled, review explicitly offers to enable them for the save across all maps.
 

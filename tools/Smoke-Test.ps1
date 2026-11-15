@@ -4,7 +4,9 @@ param(
     [string]$ProfileName = 'smoke-profile',
     [string]$SavePath,
     [switch]$Baseline,
-    [switch]$Benchmark
+    [switch]$Benchmark,
+    [ValidateRange(1024,3840)][int]$ScreenWidth = 1280,
+    [ValidateRange(720,2160)][int]$ScreenHeight = 900
 )
 $ErrorActionPreference = 'Stop'
 if ($Baseline -and !$CurrentModList) { throw 'Baseline requires CurrentModList.' }
@@ -31,6 +33,8 @@ if ($CurrentModList) {
 }
 $mods.Save((Join-Path $config 'ModsConfig.xml'))
 $prefs = [xml]'<PrefsData><screenWidth>1280</screenWidth><screenHeight>900</screenHeight><fullscreen>False</fullscreen><runInBackground>True</runInBackground><devMode>True</devMode><volumeGame>0</volumeGame><volumeMusic>0</volumeMusic></PrefsData>'
+$prefs.PrefsData.screenWidth = [string]$ScreenWidth
+$prefs.PrefsData.screenHeight = [string]$ScreenHeight
 $prefs.Save((Join-Path $config 'Prefs.xml'))
 $arguments = @('-mulldsmoketest', ('"-savedatafolder=' + $profile + '"'), ('"-logfile=' + (Join-Path $profile 'Player.log') + '"'))
 if ($Baseline) { $arguments += '-mulldbaseline' }
